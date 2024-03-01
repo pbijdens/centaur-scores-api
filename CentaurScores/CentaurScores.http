@@ -1,0 +1,13 @@
+@CentaurScores_HostAddress = https://localhost:7247
+
+POST {{CentaurScores_HostAddress}}/authentication/login/
+Accept: application/json
+
+username=pbijdens
+secret=VERY-INSECURE-WAY-OF_AUTHENTICATING
+###
+
+GET {{CentaurScores_HostAddress}}/authentication/refresh/
+Accept: application/json
+
+###
