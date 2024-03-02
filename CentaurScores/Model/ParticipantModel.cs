@@ -7,6 +7,7 @@
         public string Name { get; set; } = string.Empty;
         public string Group{ get; set; } = string.Empty;
         public string Subgroup { get; set; } = string.Empty;
+        public int Score { get; set; } = -1;
         public List<EndModel> Ends { get; set; } = new();
 
     }

@@ -15,6 +15,11 @@ namespace CentaurScores.Controllers
             this.matchRepository = matchRepository;
         }
 
+        /// <summary>
+        /// Returns a complete list of all partiocipants for a match, ordered by name.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -22,13 +27,34 @@ namespace CentaurScores.Controllers
         {
             return await matchRepository.GetParticipantsForMatch(id);
         }
-
-        [HttpPut()]
+        
+        /// <summary>
+        /// Retuurns the list of participant entries that should be used on each device that's updating scores. Will return empty participant sctructures for currently not populated lijnen.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="deviceID"></param>
+        /// <returns></returns>
+        [HttpGet("{deviceID}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<MatchModel>> UpdateMatch([FromRoute] int id, [FromBody] List<ParticipantModel> participants)
+        public async Task<ActionResult<List<ParticipantModel>>> GetParticipantsForMatchByDevice([FromRoute] int id, [FromRoute] string deviceID)
         {
-            return await matchRepository.UpdateParticipantsForMatch(id, participants);
+            return await matchRepository.GetParticipantsForMatchByDeviceID(id, deviceID);
+        }
+
+        /// <summary>
+        /// Updates the participants for the specified match, updating their scores. This will fail if the specified match is not the currewntly active match, because only that may be updated.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="deviceID"></param>
+        /// <param name="participants"></param>
+        /// <returns></returns>
+        [HttpPut("{deviceID}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<int>> UpdateParticipantsForMatch([FromRoute] int id, [FromRoute] string deviceID, [FromBody] List<ParticipantModel> participants)
+        {
+            return await matchRepository.UpdateParticipantsForMatch(id, deviceID, participants);
         }
     }
 }

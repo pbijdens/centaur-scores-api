@@ -1,4 +1,4 @@
-﻿namespace CentaurScoresAPI
+﻿namespace CentaurScores.Model
 {
     public class AppSettings
     {
