@@ -7,10 +7,6 @@ namespace CentaurScores.Persistence
     public class ParticipantEntity
     {
         public int Id { get; set; } = -1;
-        [Timestamp]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public byte[] Version { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public required MatchEntity Match { get; set; }
         public string DeviceID { get; set; } = string.Empty;
         public string Lijn { get; set; } = string.Empty;

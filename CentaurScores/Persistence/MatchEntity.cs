@@ -9,13 +9,7 @@ namespace CentaurScores.Persistence
     public class MatchEntity
     {
         /// <summary>Key</summary>
-        public int Id { get; set; } = -1;
-
-        /// <summary>Concurrency timestamp</summary>
-        [Timestamp]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public byte[] Version { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public int? Id { get; set; }
 
         public string MatchCode { get; set; } = string.Empty;
         public string MatchName { get; set; } = string.Empty;
@@ -37,7 +31,7 @@ namespace CentaurScores.Persistence
                 Groups = JsonConvert.DeserializeObject<List<GroupInfo>>(GroupsJSON) ?? new(),
                 Subgroups = JsonConvert.DeserializeObject<List<GroupInfo>>(SubgroupsJSON) ?? new(),
                 Lijnen = JsonConvert.DeserializeObject<List<string>>(LijnenJSON) ?? new(),
-                Id = Id,
+                Id = Id ?? -1,
                 IsActiveMatch = false,
                 MatchCode = MatchCode,
                 MatchName = MatchName,

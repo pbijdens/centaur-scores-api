@@ -20,8 +20,6 @@ namespace CentaurScores.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Version = table.Column<byte[]>(type: "longblob", rowVersion: true, nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.ComputedColumn),
                     MatchCode = table.Column<string>(type: "longtext", nullable: false),
                     MatchName = table.Column<string>(type: "longtext", nullable: false),
                     NumberOfEnds = table.Column<int>(type: "int", nullable: false),
@@ -57,8 +55,6 @@ namespace CentaurScores.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    Version = table.Column<byte[]>(type: "longblob", rowVersion: true, nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.ComputedColumn),
                     MatchId = table.Column<int>(type: "int", nullable: false),
                     DeviceID = table.Column<string>(type: "longtext", nullable: false),
                     Lijn = table.Column<string>(type: "longtext", nullable: false),

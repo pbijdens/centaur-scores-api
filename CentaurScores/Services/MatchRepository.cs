@@ -127,8 +127,8 @@ namespace CentaurScores.Services
                     MatchName = match.MatchName,
                 };
                 var result = db.Matches.Add(entity);
-                createdObjectId = result.Entity?.Id ?? -1;
                 await db.SaveChangesAsync();
+                createdObjectId = result.Entity?.Id ?? -1;
             }
             return await GetMatch(createdObjectId);
         }
