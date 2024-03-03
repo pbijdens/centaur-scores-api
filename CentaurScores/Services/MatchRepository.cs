@@ -158,7 +158,7 @@ namespace CentaurScores.Services
                 db.Database.EnsureCreated();
 
                 int activeID = await FetchActiveID(db);
-                List<MatchEntity> entities = await db.Matches.AsNoTracking().OrderBy(entity => entity.MatchCode).ToListAsync();
+                List<MatchEntity> entities = await db.Matches.AsNoTracking().OrderByDescending(entity => entity.MatchCode).ToListAsync();
                 List<MatchModel> result = entities.Select(x => x.ToModel()).Select(x =>
                 {
                     x.IsActiveMatch = x.Id == activeID;

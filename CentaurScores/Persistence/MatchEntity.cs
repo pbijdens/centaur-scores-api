@@ -31,6 +31,7 @@ namespace CentaurScores.Persistence
                 AutoProgressAfterEachArrow = AutoProgressAfterEachArrow,
                 Groups = JsonConvert.DeserializeObject<List<GroupInfo>>(GroupsJSON) ?? new(),
                 Subgroups = JsonConvert.DeserializeObject<List<GroupInfo>>(SubgroupsJSON) ?? new(),
+                Targets = JsonConvert.DeserializeObject<List<GroupInfo>>(TargetsJSON) ?? new(),
                 Lijnen = JsonConvert.DeserializeObject<List<string>>(LijnenJSON) ?? new(),
                 Id = Id ?? -1,
                 IsActiveMatch = false,
