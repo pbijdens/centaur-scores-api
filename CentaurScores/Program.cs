@@ -26,8 +26,21 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseMiddleware<JwtMiddleware>();
+
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Method.Equals("options", StringComparison.InvariantCultureIgnoreCase) && ctx.Request.Headers.ContainsKey("Access-Control-Request-Private-Network"))
+    {
+        ctx.Response.Headers["Access-Control-Allow-Private-Network"] = "true";
+    }
+
+    await next();
+});
 
 app.UseCors("AllowAll");
 
