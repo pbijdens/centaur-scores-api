@@ -13,6 +13,7 @@ namespace CentaurScores.Persistence
         public string Name { get; set; } = string.Empty;
         public string Group { get; set; } = string.Empty;
         public string Subgroup { get; set; } = string.Empty;
+        public string Target { get; set; } = string.Empty;
         public int Score { get; set; }
         public string EndsJSON { get; set; } = string.Empty;
 
@@ -27,6 +28,7 @@ namespace CentaurScores.Persistence
                 Lijn = Lijn,
                 Name = Name,
                 Subgroup = Subgroup,
+                Target = Target,
             };
         }
 
@@ -35,6 +37,7 @@ namespace CentaurScores.Persistence
             Name = data.Name;
             Group = data.Group;
             Subgroup = data.Subgroup;
+            Target = data.Target;
             Score = data.Score;
             EndsJSON = JsonConvert.SerializeObject(data.Ends);
         }

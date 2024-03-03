@@ -19,6 +19,7 @@ namespace CentaurScores.Persistence
         public string ScoreValuesJson { get; set; } = "[]";
         public string GroupsJSON { get; set; } = "[]";
         public string SubgroupsJSON { get; set; } = "[]";
+        public string TargetsJSON { get; set; } = "[]";
         public string LijnenJSON { get; set; } = "[]";
         public List<ParticipantEntity> Participants { get; set; } = new();
 

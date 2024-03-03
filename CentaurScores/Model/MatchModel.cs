@@ -16,6 +16,7 @@ namespace CentaurScores.Model
         public Dictionary<string, List<ScoreButtonDefinition>> ScoreValues { get; set; } = new();
         public List<GroupInfo> Groups { get; set; } = new();
         public List<GroupInfo> Subgroups { get; set; } = new();
+        public List<GroupInfo> Targets { get; set; } = new();
         public List<string> Lijnen { get; set; } = new();
     }
 }

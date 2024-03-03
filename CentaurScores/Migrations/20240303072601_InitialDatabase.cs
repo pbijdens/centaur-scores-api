@@ -6,7 +6,7 @@ using MySql.EntityFrameworkCore.Metadata;
 namespace CentaurScores.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCentaurScoresDB : Migration
+    public partial class InitialDatabase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -28,6 +28,7 @@ namespace CentaurScores.Migrations
                     ScoreValuesJson = table.Column<string>(type: "longtext", nullable: false),
                     GroupsJSON = table.Column<string>(type: "longtext", nullable: false),
                     SubgroupsJSON = table.Column<string>(type: "longtext", nullable: false),
+                    TargetsJSON = table.Column<string>(type: "longtext", nullable: false),
                     LijnenJSON = table.Column<string>(type: "longtext", nullable: false)
                 },
                 constraints: table =>
@@ -61,6 +62,7 @@ namespace CentaurScores.Migrations
                     Name = table.Column<string>(type: "longtext", nullable: false),
                     Group = table.Column<string>(type: "longtext", nullable: false),
                     Subgroup = table.Column<string>(type: "longtext", nullable: false),
+                    Target = table.Column<string>(type: "longtext", nullable: false),
                     Score = table.Column<int>(type: "int", nullable: false),
                     EndsJSON = table.Column<string>(type: "longtext", nullable: false)
                 },

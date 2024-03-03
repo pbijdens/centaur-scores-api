@@ -71,6 +71,10 @@ namespace CentaurScores.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("TargetsJSON")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.HasKey("Id");
 
                     b.ToTable("Matches");
@@ -109,6 +113,10 @@ namespace CentaurScores.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Subgroup")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Target")
                         .IsRequired()
                         .HasColumnType("longtext");
 

@@ -123,6 +123,7 @@ namespace CentaurScores.Services
                     Participants = new(),
                     ScoreValuesJson = JsonConvert.SerializeObject(match.ScoreValues),
                     SubgroupsJSON = JsonConvert.SerializeObject(match.Subgroups),
+                    TargetsJSON = JsonConvert.SerializeObject(match.Targets),
                     MatchCode = match.MatchCode,
                     MatchName = match.MatchName,
                 };
@@ -220,7 +221,7 @@ namespace CentaurScores.Services
                 foreach (var lijn in match.Lijnen) // returns one participant for each "Lijn"
                 {
                     ParticipantModel? participant = participants.FirstOrDefault(p => p.Lijn == lijn);
-                    participant ??= new ParticipantModel { Lijn = lijn, Score = 0, Id = -1, Ends = new(), Name = string.Empty, Group = string.Empty, Subgroup = string.Empty };
+                    participant ??= new ParticipantModel { Lijn = lijn, Score = 0, Id = -1, Ends = new(), Name = string.Empty, Group = string.Empty, Subgroup = string.Empty, Target = string.Empty };
                     AutoFixParticipantModel(match, participant);
                     result.Add(participant);
                 }
@@ -249,6 +250,7 @@ namespace CentaurScores.Services
                 matchEntity.ScoreValuesJson = JsonConvert.SerializeObject(match.ScoreValues);
                 matchEntity.GroupsJSON = JsonConvert.SerializeObject(match.Groups);
                 matchEntity.SubgroupsJSON = JsonConvert.SerializeObject(match.Subgroups);
+                matchEntity.TargetsJSON = JsonConvert.SerializeObject(match.Targets);
                 matchEntity.LijnenJSON = JsonConvert.SerializeObject(match.Lijnen);
 
                 await db.SaveChangesAsync();

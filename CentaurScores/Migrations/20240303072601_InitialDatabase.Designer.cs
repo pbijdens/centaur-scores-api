@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CentaurScores.Migrations
 {
     [DbContext(typeof(CentaurScoresDbContext))]
-    [Migration("20240302164730_InitialCentaurScoresDB")]
-    partial class InitialCentaurScoresDB
+    [Migration("20240303072601_InitialDatabase")]
+    partial class InitialDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -74,6 +74,10 @@ namespace CentaurScores.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("TargetsJSON")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.HasKey("Id");
 
                     b.ToTable("Matches");
@@ -112,6 +116,10 @@ namespace CentaurScores.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Subgroup")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Target")
                         .IsRequired()
                         .HasColumnType("longtext");
 
