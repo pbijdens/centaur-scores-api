@@ -26,10 +26,6 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
 app.UseMiddleware<JwtMiddleware>();
 
 app.Use(async (ctx, next) =>

@@ -6,7 +6,7 @@ namespace CentaurScores.Persistence
 {
     public class ParticipantEntity
     {
-        public int Id { get; set; } = -1;
+        public int? Id { get; set; } = null;
         public required MatchEntity Match { get; set; }
         public string DeviceID { get; set; } = string.Empty;
         public string Lijn { get; set; } = string.Empty;
@@ -21,7 +21,7 @@ namespace CentaurScores.Persistence
         {
             return new()
             {
-                Id = Id,
+                Id = Id ?? -1,
                 Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? new(),
                 Score = Score,
                 Group = Group,

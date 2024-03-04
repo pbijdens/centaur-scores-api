@@ -270,7 +270,7 @@ namespace CentaurScores.Services
                 int activeID = await FetchActiveID(db);
                 if (activeID != id) throw new InvalidOperationException($"Updating data is only allowed for the currently active match.");
 
-                MatchEntity? matchEntity = await db.Matches.Where(x => x.Id == id).FirstOrDefaultAsync();
+                MatchEntity? matchEntity = await db.Matches.Include(m => m.Participants).Where(x => x.Id == id).FirstOrDefaultAsync();
                 if (null == matchEntity) throw new InvalidOperationException($"Updating data for non-existent match {id} is not allowed.");
 
                 var lijnen = JsonConvert.DeserializeObject<List<string>>(matchEntity.LijnenJSON) ?? new();
