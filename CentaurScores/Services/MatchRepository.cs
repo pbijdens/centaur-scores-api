@@ -199,7 +199,7 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                List<ParticipantEntity> entities = await db.Participants.AsNoTracking().OrderBy(entity => entity.Name).ToListAsync();
+                List<ParticipantEntity> entities = await db.Participants.AsNoTracking().Where(x => x.Match.Id == id).OrderBy(entity => entity.Name).ToListAsync();
                 List<ParticipantModel> result = entities.Select(x => x.ToModel()).ToList();
                 return result;
             }
