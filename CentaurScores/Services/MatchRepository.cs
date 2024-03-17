@@ -235,7 +235,6 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                int activeID = await FetchActiveID(db);
                 MatchEntity? matchEntity = await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync();
                 if (null == matchEntity)
                 {
@@ -314,6 +313,32 @@ namespace CentaurScores.Services
                 await db.SaveChangesAsync();
 
                 return result;
+            }
+        }
+
+        public async Task<bool> TransferParticipantForMatchToDevice(int id, int participantId, string targetDeviceID)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                MatchEntity? matchEntity = await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync();
+                if (null == matchEntity)
+                {
+                    throw new InvalidOperationException($"TransferParticipantForMatchToDevice invoked for non-existing match {id}");
+                }
+
+                ParticipantEntity? participant = db.Participants.Where(x => x.Id == participantId).FirstOrDefault();
+                if (null == participant)
+                {
+                    throw new InvalidOperationException($"TransferParticipantForMatchToDevice invoked for non-existing participant {participantId}");
+                }
+
+                participant.DeviceID = targetDeviceID;
+
+                await db.SaveChangesAsync();
+
+                return true;
             }
         }
     }

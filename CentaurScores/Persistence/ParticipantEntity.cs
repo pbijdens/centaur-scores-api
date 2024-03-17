@@ -29,6 +29,7 @@ namespace CentaurScores.Persistence
                 Name = Name,
                 Subgroup = Subgroup,
                 Target = Target,
+                DeviceID = DeviceID,
             };
         }
 
@@ -39,6 +40,10 @@ namespace CentaurScores.Persistence
             Subgroup = data.Subgroup;
             Target = data.Target;
             Score = data.Score;
+            if (!string.IsNullOrEmpty(data.Lijn))
+            {
+                Lijn = data.Lijn;
+            }
             EndsJSON = JsonConvert.SerializeObject(data.Ends);
         }
     }
