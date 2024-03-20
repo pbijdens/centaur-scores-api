@@ -336,7 +336,7 @@ namespace CentaurScores.Services
 
                 // If there is currently someone configured for this lijn, remove that record
                 ParticipantEntity? existingParticipant = db.Participants.Where(x => x.Match.Id == id && x.DeviceID == targetDeviceID && x.Lijn == lijn).FirstOrDefault();
-                if (null != existingParticipant)
+                if (null != existingParticipant && existingParticipant.Id != participantId) 
                 {
                     db.Participants.Remove(existingParticipant);
                     await db.SaveChangesAsync();
