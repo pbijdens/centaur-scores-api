@@ -316,7 +316,7 @@ namespace CentaurScores.Services
             }
         }
 
-        public async Task<bool> TransferParticipantForMatchToDevice(int id, int participantId, string targetDeviceID)
+        public async Task<bool> TransferParticipantForMatchToDevice(int id, int participantId, string targetDeviceID, string lijn)
         {
             using (var db = new CentaurScoresDbContext(configuration))
             {
@@ -334,7 +334,17 @@ namespace CentaurScores.Services
                     throw new InvalidOperationException($"TransferParticipantForMatchToDevice invoked for non-existing participant {participantId}");
                 }
 
+                // If there is currently someone configured for this lijn, remove that record
+                ParticipantEntity? existingParticipant = db.Participants.Where(x => x.Match.Id == id && x.DeviceID == targetDeviceID && x.Lijn == lijn).FirstOrDefault();
+                if (null != existingParticipant)
+                {
+                    db.Participants.Remove(existingParticipant);
+                    await db.SaveChangesAsync();
+                }
+
+                // Update the transferred record
                 participant.DeviceID = targetDeviceID;
+                participant.Lijn = lijn;
 
                 await db.SaveChangesAsync();
 

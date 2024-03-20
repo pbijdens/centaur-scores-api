@@ -57,12 +57,12 @@ namespace CentaurScores.Controllers
             return await matchRepository.UpdateParticipantsForMatch(id, deviceID, participants);
         }
 
-        [HttpPost("{participantId}/transfer/{targetDeviceID}")]
+        [HttpPost("{participantId}/transfer/{targetDeviceID}/{lijn}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<bool>> TransferParticipantToDevice([FromRoute] int id, [FromRoute] int participantId, [FromRoute] string targetDeviceID)
+        public async Task<ActionResult<bool>> TransferParticipantToDevice([FromRoute] int id, [FromRoute] int participantId, [FromRoute] string targetDeviceID, [FromRoute] string lijn)
         {
-            return await matchRepository.TransferParticipantForMatchToDevice(id, participantId, targetDeviceID);
+            return await matchRepository.TransferParticipantForMatchToDevice(id, participantId, targetDeviceID, lijn);
         }
     }
 }
