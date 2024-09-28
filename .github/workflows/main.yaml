@@ -1,0 +1,61 @@
+name: Multi-platform build for .NET 8
+
+on:
+    push:
+        branches: [ "main" ]
+    pull_request:
+        branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+        matrix:
+            target-platform: ["x86", "arm64"]
+    
+    steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-dotnet@v4
+          with:
+            dotnet-version: '8.x'
+        - name: Restore packages
+          run: dotnet restore
+        - name: Build portable package
+          run: dotnet publish CentaurScores -c Release  -p FolderProfile
+        - name: Compress output
+          run: |
+            cd CentaurScores/bin/Release/net8.0/publish/
+            tar -czf ../../../centaurscores-api.tar.gz .
+        - name: Upload Artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: Releases
+            path: |
+                CentaurScores/bin/centaurscores-api.tar.gz
+        - name: Extract version from version.json
+          id: extract_version
+          run: |
+            version=$(grep 'version' CentaurScores/version.json | head -1 | cut -d '"' -f 4 | tr -d '\r')
+            echo "VERSION=$version" >> $GITHUB_ENV
+        - name: Check if Tag Exists
+          id: check_tag
+          run: |
+            if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+              echo "TAG_EXISTS=true" >> $GITHUB_ENV
+            else
+              echo "TAG_EXISTS=false" >> $GITHUB_ENV
+            fi
+        - name: Modify Tag
+          if: env.TAG_EXISTS == 'true'
+          id: modify_tag
+          run: |
+            new_version="${{ env.VERSION }}-build-${{ github.run_number }}"
+            echo "VERSION=$new_version" >> $GITHUB_ENV
+        - name: Create Release
+          uses: ncipollo/release-action@v1
+          with:
+            artifacts: "CentaurScores/bin/centaurscores-api.tar.gz"
+            tag: v${{ env.VERSION }}
+            token: ${{ secrets.TOKEN }}            
+
