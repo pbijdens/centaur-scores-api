@@ -10,9 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-        matrix:
-            target-platform: ["x86", "arm64"]
+#    strategy:
+#        matrix:
+#            target-platform: ["x86", "arm64"]
     
     steps:
         - uses: actions/checkout@v4
