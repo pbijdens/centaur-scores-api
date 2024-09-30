@@ -1,4 +1,6 @@
-﻿namespace CentaurScores.Persistence
+﻿using CentaurScores.Model;
+
+namespace CentaurScores.Persistence
 {
     public class ParticipantListEntryEntity
     {
@@ -10,5 +12,24 @@
         public string Group { get; set; } = string.Empty;
         /// <summary>A default sub-group for the participant.</summary>
         public string Subgroup { get; set; } = string.Empty;
+
+        internal ParticipantListMemberModel ToModel()
+        {
+            ParticipantListMemberModel result = new()
+            {
+                Id = Id,
+                Name = Name,
+                Group = Group,
+                Subgroup = Subgroup
+            };
+            return result;
+        }
+
+        internal void UpdateFromModel(ParticipantListMemberModel metadata)
+        {
+            Name = metadata.Name;
+            Group = metadata.Group;
+            Subgroup = metadata.Subgroup;
+        }
     }
 }

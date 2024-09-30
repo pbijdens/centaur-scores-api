@@ -16,7 +16,7 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns a complete list of all partiocipants for a match, ordered by name.
+        /// Returns a complete list of all participants for a match, ordered by name.
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -29,7 +29,7 @@ namespace CentaurScores.Controllers
         }
         
         /// <summary>
-        /// Retuurns the list of participant entries that should be used on each device that's updating scores. Will return empty participant sctructures for currently not populated lijnen.
+        /// Returns the list of participant entries that should be used on a device that's updating scores. Will return empty participant sctructures for currently not populated lijnen.
         /// </summary>
         /// <param name="id"></param>
         /// <param name="deviceID"></param>
@@ -43,7 +43,7 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Updates the participants for the specified match, updating their scores. This will fail if the specified match is not the currewntly active match, because only that may be updated.
+        /// Updates the participants for the specified match, updating their scores. This will fail if the specified match is not the currently active match, because only that may be updated.
         /// </summary>
         /// <param name="id"></param>
         /// <param name="deviceID"></param>
@@ -57,6 +57,14 @@ namespace CentaurScores.Controllers
             return await matchRepository.UpdateParticipantsForMatch(id, deviceID, participants);
         }
 
+        /// <summary>
+        /// Transfer a participant from one device onto another.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="participantId"></param>
+        /// <param name="targetDeviceID"></param>
+        /// <param name="lijn"></param>
+        /// <returns></returns>
         [HttpPost("{participantId}/transfer/{targetDeviceID}/{lijn}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

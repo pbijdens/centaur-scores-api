@@ -17,7 +17,7 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns the configfuration for all matches in the system, alphabetically ordere on their code.
+        /// Returns the configuuration for all matches in the system, alphabetically ordered by their code.
         /// </summary>
         /// <returns></returns>
         [HttpGet()]

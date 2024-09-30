@@ -21,6 +21,7 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddTransient<ITokenService, TokenService>();
 builder.Services.AddTransient<IMatchRepository, MatchRepository>();
+builder.Services.AddTransient<ICompetitionRepository, CompetitionRepository>();
 
 var app = builder.Build();
 
