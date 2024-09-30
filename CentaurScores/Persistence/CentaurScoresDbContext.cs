@@ -6,8 +6,12 @@ using System.Configuration;
 
 namespace CentaurScores.Persistence
 {
-    // dotnet ef migratrions add MigrationName
-    // dotnet ef migratrions script
+    // In the project folder:
+    // - dotnet ef migrations add MigrationName
+    // - dotnet dotnet ef migrations script 
+    //
+    // Create the new migrations bundle using this command
+    // - dotnet ef migrations bundle
     public class CentaurScoresDbContext : DbContext
     {
         private readonly IConfiguration configuration;
@@ -15,6 +19,8 @@ namespace CentaurScores.Persistence
         public DbSet<MatchEntity> Matches { get; set; }
         public DbSet<ParticipantEntity> Participants { get; set; }
         public DbSet<CsSetting> Settings { get; set; }
+        public DbSet<ParticipantListEntity> ParticipantLists { get; set; }
+        public DbSet<ParticipantListEntryEntity> ParticipantListEntries { get; set; }
 
         public CentaurScoresDbContext(IConfiguration configuration)
         {
@@ -56,6 +62,21 @@ namespace CentaurScores.Persistence
             modelBuilder.Entity<CsSetting>(entity =>
             {
                 entity.HasKey(e => e.Name);
+            });
+
+            modelBuilder.Entity<ParticipantListEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).IsRequired();
+                entity.HasMany(e => e.Entries).WithOne(p => p.List).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ParticipantListEntryEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).IsRequired();
             });
         }
     }

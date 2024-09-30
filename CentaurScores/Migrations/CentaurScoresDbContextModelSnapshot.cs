@@ -82,7 +82,7 @@ namespace CentaurScores.Migrations
 
             modelBuilder.Entity("CentaurScores.Persistence.ParticipantEntity", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int?>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
@@ -109,6 +109,9 @@ namespace CentaurScores.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int?>("ParticipantListEntryId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Score")
                         .HasColumnType("int");
 
@@ -127,6 +130,49 @@ namespace CentaurScores.Migrations
                     b.ToTable("Participants");
                 });
 
+            modelBuilder.Entity("CentaurScores.Persistence.ParticipantListEntity", b =>
+                {
+                    b.Property<int?>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ParticipantLists");
+                });
+
+            modelBuilder.Entity("CentaurScores.Persistence.ParticipantListEntryEntity", b =>
+                {
+                    b.Property<int?>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Group")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("ListId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Subgroup")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListId");
+
+                    b.ToTable("ParticipantListEntries");
+                });
+
             modelBuilder.Entity("CentaurScores.Persistence.ParticipantEntity", b =>
                 {
                     b.HasOne("CentaurScores.Persistence.MatchEntity", "Match")
@@ -138,9 +184,25 @@ namespace CentaurScores.Migrations
                     b.Navigation("Match");
                 });
 
+            modelBuilder.Entity("CentaurScores.Persistence.ParticipantListEntryEntity", b =>
+                {
+                    b.HasOne("CentaurScores.Persistence.ParticipantListEntity", "List")
+                        .WithMany("Entries")
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("List");
+                });
+
             modelBuilder.Entity("CentaurScores.Persistence.MatchEntity", b =>
                 {
                     b.Navigation("Participants");
+                });
+
+            modelBuilder.Entity("CentaurScores.Persistence.ParticipantListEntity", b =>
+                {
+                    b.Navigation("Entries");
                 });
 #pragma warning restore 612, 618
         }
