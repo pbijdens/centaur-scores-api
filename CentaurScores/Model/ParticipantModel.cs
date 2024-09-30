@@ -11,6 +11,6 @@
         public int Score { get; set; } = -1;
         public List<EndModel> Ends { get; set; } = new();
         public string DeviceID { get; set; } = string.Empty;
-
+        public int? ParticipantListEntryId { get; set; } = null;
     }
 }

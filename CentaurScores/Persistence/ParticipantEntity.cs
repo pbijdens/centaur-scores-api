@@ -16,6 +16,7 @@ namespace CentaurScores.Persistence
         public string Target { get; set; } = string.Empty;
         public int Score { get; set; }
         public string EndsJSON { get; set; } = string.Empty;
+        public int? ParticipantListEntryId { get; set; } = null;
 
         internal ParticipantModel ToModel()
         {
@@ -30,6 +31,7 @@ namespace CentaurScores.Persistence
                 Subgroup = Subgroup,
                 Target = Target,
                 DeviceID = DeviceID,
+                ParticipantListEntryId = ParticipantListEntryId,
             };
         }
 
@@ -40,6 +42,11 @@ namespace CentaurScores.Persistence
             Subgroup = data.Subgroup;
             Target = data.Target;
             Score = data.Score;
+            // When intentionally clearing this, set it to -1
+            if (null != data.ParticipantListEntryId)
+            {
+                ParticipantListEntryId = data.ParticipantListEntryId;
+            }
             if (!string.IsNullOrEmpty(data.Lijn))
             {
                 Lijn = data.Lijn;
