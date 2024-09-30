@@ -3,6 +3,7 @@ using CentaurScores.Persistence;
 using CentaurScores.Services;
 using CentaurScoresAPI;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Pqc.Crypto.Lms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,5 +44,7 @@ app.UseCors("AllowAll");
 app.UseAuthorization();
 
 app.MapControllers();
+
+await app.MigrateDatabases();
 
 app.Run();

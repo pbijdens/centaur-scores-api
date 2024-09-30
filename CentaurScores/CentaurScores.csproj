@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="efbundle-linux-arm64.exe" />
+    <None Remove="migration-script.sql" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="efbundle-linux-arm64.exe">
+    <Content Include="migration-script.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
