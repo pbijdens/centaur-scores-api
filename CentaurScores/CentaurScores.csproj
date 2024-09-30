@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="efbundle.exe" />
+    <None Remove="efbundle-linux-arm64.exe" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="efbundle.exe">
+    <Content Include="efbundle-linux-arm64.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

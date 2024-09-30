@@ -12,6 +12,7 @@ namespace CentaurScores.Persistence
     //
     // Create the new migrations bundle using this command
     // - dotnet ef migrations bundle
+    // - dotnet ef migrations bundle --target-runtime linux-arm64 -o efbundle-linux-arm64.exe
     public class CentaurScoresDbContext : DbContext
     {
         private readonly IConfiguration configuration;
