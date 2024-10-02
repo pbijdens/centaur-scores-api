@@ -7,8 +7,8 @@ namespace CentaurScores.Persistence
         public int? Id { get; set; } = null;
         public string Name { get; set; } = string.Empty;
         public string? RulesetGroupName { get; set; } = null;
-        public DateOnly? StartDate { get; set; } = null;
-        public DateOnly? EndDate { get; set; } = null;
+        public DateTimeOffset? StartDate { get; set; } = null;
+        public DateTimeOffset? EndDate { get; set; } = null;
         public ParticipantListEntity? ParticipantList { get; set; } = null;
         public List<MatchEntity> Matches { get; set; } = [];
 
@@ -19,8 +19,8 @@ namespace CentaurScores.Persistence
                 Id = Id,
                 Name = Name,
                 RulesetGroupName = RulesetGroupName,
-                StartDate = StartDate,
-                EndDate = EndDate,
+                StartDate = StartDate.HasValue ? StartDate.Value.ToString("yyyy-MM-dd") : null,
+                EndDate = EndDate.HasValue ? EndDate.Value.ToString("yyyy-MM-dd") : null,
             };
             return result;
         }
@@ -28,9 +28,9 @@ namespace CentaurScores.Persistence
         internal void UpdateMetadataFromModel(CompetitionModel metadata)
         {
             Name = metadata.Name;
-            RulesetGroupName = RulesetGroupName;
-            StartDate = StartDate;
-            EndDate = EndDate;
+            RulesetGroupName = metadata.RulesetGroupName;
+            StartDate = metadata.StartDate == null ? null : DateTimeOffset.Parse(metadata.StartDate + "T00:00:00Z");
+            EndDate = metadata.EndDate == null ? null : DateTimeOffset.Parse(metadata.EndDate + "T00:00:00Z");
         }
     }
 }

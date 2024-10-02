@@ -18,7 +18,7 @@ namespace CentaurScores.Persistence
         public DbSet<CsSetting> Settings { get; set; }
         public DbSet<ParticipantListEntity> ParticipantLists { get; set; }
         public DbSet<ParticipantListEntryEntity> ParticipantListEntries { get; set; }
-        public DbSet<CompetitionEntity> Competitons { get; set; }
+        public DbSet<CompetitionEntity> Competitions { get; set; }
 
         public CentaurScoresDbContext(IConfiguration configuration)
         {
@@ -85,7 +85,7 @@ namespace CentaurScores.Persistence
                 // optional one-to-many
                 entity.HasOne(e => e.ParticipantList).WithMany(p => p.Competitions).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
                 // optional meny-to-one
-                entity.HasMany(e => e.Matches).WithOne(m => m.Competiton).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
+                entity.HasMany(e => e.Matches).WithOne(m => m.Competition).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
             });
         }
     }

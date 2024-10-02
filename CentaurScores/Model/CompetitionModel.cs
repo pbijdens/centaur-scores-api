@@ -15,13 +15,13 @@
         /// </summary>
         public string? RulesetGroupName { get; set; } = null;
         /// <summary>
-        /// Start date of the competition, informative.
+        /// Start date of the competition, informative. YYYY-MM-DD
         /// </summary>
-        public DateOnly? StartDate { get; set; } = null;
+        public string? StartDate { get; set; } = null;
         /// <summary>
-        /// End date of the competition, informative.
+        /// End date of the competition, informative. YYYY-MM-DD
         /// </summary>
-        public DateOnly? EndDate { get; set; } = null;
+        public string? EndDate { get; set; } = null;
         /// <summary>
         /// List of matches that have been added to this competition.
         /// </summary>

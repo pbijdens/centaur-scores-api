@@ -22,7 +22,7 @@ namespace CentaurScores.Persistence
         public string TargetsJSON { get; set; } = "[]";
         public string LijnenJSON { get; set; } = "[]";
         public List<ParticipantEntity> Participants { get; set; } = new();
-        public CompetitionEntity? Competiton { get; set; } = null;
+        public CompetitionEntity? Competition { get; set; } = null;
         public string? RulesetCode { get; set; } = null;
 
         internal MatchModel ToModel()
@@ -42,6 +42,7 @@ namespace CentaurScores.Persistence
                 NumberOfEnds = NumberOfEnds,
                 ScoreValues = JsonConvert.DeserializeObject<Dictionary<string, List<ScoreButtonDefinition>>>(ScoreValuesJson) ?? new(),
                 RulesetCode = RulesetCode,
+                Competition = Competition?.ToMetadataModel(),
             };
         }
     }

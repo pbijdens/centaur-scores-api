@@ -128,6 +128,10 @@ namespace CentaurScores.Services
                     MatchName = match.MatchName,
                     RulesetCode = match.RulesetCode,
                 };
+                if (match.Competition != null && match.Competition.Id > 0)
+                {
+                    entity.Competition = await db.Competitions.FirstOrDefaultAsync(x => x.Id == match.Competition.Id);
+                }
                 var result = db.Matches.Add(entity);
                 await db.SaveChangesAsync();
                 createdObjectId = result.Entity?.Id ?? -1;

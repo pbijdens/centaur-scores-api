@@ -25,7 +25,7 @@ namespace CentaurScores.Services
             using (var db = new CentaurScoresDbContext(configuration))
             {
                 db.Database.EnsureCreated();
-                CompetitionEntity? foundEntity = await db.Competitons.FirstOrDefaultAsync(x => x.Id == competitionId);
+                CompetitionEntity? foundEntity = await db.Competitions.FirstOrDefaultAsync(x => x.Id == competitionId);
                 if (foundEntity != null)
                 {
                     foreach (var service in ruleServices)
@@ -92,7 +92,7 @@ namespace CentaurScores.Services
                 }
                 // We do not take matches as input, that relationship is built the other way
 
-                EntityEntry<CompetitionEntity> createdEntityEntry = await db.Competitons.AddAsync(newEntity);
+                EntityEntry<CompetitionEntity> createdEntityEntry = await db.Competitions.AddAsync(newEntity);
                 await db.SaveChangesAsync();
                 createdObjectId = createdEntityEntry.Entity?.Id ?? -1;
             }
@@ -150,10 +150,10 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                CompetitionEntity? foundEntity = await db.Competitons.FirstOrDefaultAsync(x => x.Id == competitionId);
+                CompetitionEntity? foundEntity = await db.Competitions.FirstOrDefaultAsync(x => x.Id == competitionId);
                 if (null != foundEntity)
                 {
-                    db.Competitons.Remove(foundEntity);
+                    db.Competitions.Remove(foundEntity);
                     await db.SaveChangesAsync();
                     return 1;
                 }
@@ -201,7 +201,7 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                CompetitionEntity? foundEntity = await db.Competitons.Include(x => x.ParticipantList).Include(x => x.Matches).FirstOrDefaultAsync(x => x.Id == competitionId);
+                CompetitionEntity? foundEntity = await db.Competitions.Include(x => x.ParticipantList).Include(x => x.Matches).FirstOrDefaultAsync(x => x.Id == competitionId);
                 if (null != foundEntity)
                 {
                     CompetitionModel result = foundEntity.ToMetadataModel();
@@ -234,7 +234,7 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                return (await db.Competitons.OrderByDescending(x => x.StartDate).ThenBy(x => x.Name).ToListAsync())
+                return (await db.Competitions.OrderByDescending(x => x.StartDate).ThenBy(x => x.Name).ToListAsync())
                     .Select(x => x.ToMetadataModel())
                     .ToList();
             }
@@ -310,10 +310,14 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                CompetitionEntity? foundEntity = await db.Competitons.FirstOrDefaultAsync(x => x.Id == competitionId);
+                CompetitionEntity? foundEntity = await db.Competitions.FirstOrDefaultAsync(x => x.Id == competitionId);
                 if (null != foundEntity)
                 {
                     foundEntity.UpdateMetadataFromModel(model);
+                    if (model.ParticipantsList != null)
+                    {
+                        foundEntity.ParticipantList = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == model.ParticipantsList.Id);
+                    }
                     await db.SaveChangesAsync();
                     return await GetCompetition(competitionId);
                 }
