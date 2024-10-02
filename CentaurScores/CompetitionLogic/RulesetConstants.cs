@@ -50,7 +50,7 @@ namespace CentaurScores.CompetitionLogic
 
         public static List<GroupInfo> TargetsLancasterFinale = [
             new () { Code = "LANF", Label = "Lancaster Finale (1-12)" },
-            new () { Code = "LAN3SF", Label = "Lancaster Finale 3-SPot (6-11)" },
+            new () { Code = "LAN3SF", Label = "Lancaster Finale 3-SPot (6-12)" },
         ];
 
         public static Dictionary<string, List<ScoreButtonDefinition>> Keyboards18M = new() {
