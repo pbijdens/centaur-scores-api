@@ -21,6 +21,7 @@ namespace CentaurScores.Persistence
                 RulesetGroupName = RulesetGroupName,
                 StartDate = StartDate.HasValue ? StartDate.Value.ToString("yyyy-MM-dd") : null,
                 EndDate = EndDate.HasValue ? EndDate.Value.ToString("yyyy-MM-dd") : null,
+                ParticipantsList = ParticipantList == null ? null : ParticipantList.ToMetadataModel()
             };
             return result;
         }

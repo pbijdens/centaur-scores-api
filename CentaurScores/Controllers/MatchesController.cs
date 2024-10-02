@@ -89,7 +89,7 @@ namespace CentaurScores.Controllers
         [HttpGet("active")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<MatchModel>> GetActiveMatch()
+        public async Task<ActionResult<MatchModel?>> GetActiveMatch()
         {
             return await matchRepository.GetActiveMatch();
         }

@@ -174,15 +174,22 @@ namespace CentaurScores.Services
         }
 
 
-        public async Task<MatchModel> GetActiveMatch()
+        public async Task<MatchModel?> GetActiveMatch()
         {
             using (var db = new CentaurScoresDbContext(configuration))
             {
                 db.Database.EnsureCreated();
 
                 int activeID = await FetchActiveID(db);
-                MatchModel result = await GetMatchModelFromID(db, activeID, activeID);
-                return result;
+                if (activeID >= 0)
+                {
+                    MatchModel result = await GetMatchModelFromID(db, activeID, activeID);
+                    return result;
+                }
+                else
+                {
+                    return null;
+                }
             }
         }
 

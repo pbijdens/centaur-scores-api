@@ -20,6 +20,16 @@ namespace CentaurScores.Persistence
             return result;
         }
 
+        internal ParticipantListMetadataModel ToMetadataModel()
+        {
+            ParticipantListMetadataModel result = new()
+            {
+                Id = Id,
+                Name = Name,
+            };
+            return result;
+        }
+
         internal void UpdateFromModel(ParticipantListModel metadata)
         {
             Name = metadata.Name;

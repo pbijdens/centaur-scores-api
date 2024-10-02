@@ -4,6 +4,7 @@ using CentaurScores.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MySqlX.XDevAPI.Common;
+using Newtonsoft.Json;
 using System.Configuration;
 
 namespace CentaurScores.Services
@@ -201,6 +202,8 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
+                int activeId = await FetchActiveID(db);
+
                 CompetitionEntity? foundEntity = await db.Competitions.Include(x => x.ParticipantList).Include(x => x.Matches).FirstOrDefaultAsync(x => x.Id == competitionId);
                 if (null != foundEntity)
                 {
@@ -219,7 +222,8 @@ namespace CentaurScores.Services
                             Id = m.Id,
                             MatchCode = m.MatchCode,
                             MatchName = m.MatchName,
-                            RulesetCode = m.RulesetCode
+                            RulesetCode = m.RulesetCode,
+                            IsActive = m.Id == activeId,
                         }).ToList();
                     }
                     return result;
@@ -234,9 +238,10 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                return (await db.Competitions.OrderByDescending(x => x.StartDate).ThenBy(x => x.Name).ToListAsync())
+                var result = (await db.Competitions.Include(x => x.ParticipantList).OrderByDescending(x => x.StartDate).ThenBy(x => x.Name).ToListAsync())
                     .Select(x => x.ToMetadataModel())
                     .ToList();
+                return result;
             }
         }
 
@@ -319,7 +324,8 @@ namespace CentaurScores.Services
                         foundEntity.ParticipantList = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == model.ParticipantsList.Id);
                     }
                     await db.SaveChangesAsync();
-                    return await GetCompetition(competitionId);
+                    CompetitionModel? result = await GetCompetition(competitionId);
+                    return result;
                 }
             }
             throw new ArgumentException(nameof(competitionId), $"A competition with that ID does not exist");
@@ -357,6 +363,13 @@ namespace CentaurScores.Services
                 }
             }
             throw new ArgumentException(nameof(memberId), $"A member with that ID does not exist in that list, or the list does not exist");
+        }
+
+        private static async Task<int> FetchActiveID(CentaurScoresDbContext db)
+        {
+            CsSetting? activeSetting = await db.Settings.AsNoTracking().FirstOrDefaultAsync(x => x.Name == CsSetting.ActiveMatchId);
+            int? activeID = JsonConvert.DeserializeObject<int?>(activeSetting?.JsonValue ?? "-1");
+            return activeID ?? -1;
         }
     }
 }

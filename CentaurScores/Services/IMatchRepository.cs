@@ -9,7 +9,7 @@ namespace CentaurScores.Services
         Task<MatchModel> CreateMatch(MatchModel match);
         Task<bool> DeleteMatch(int id);
         Task<List<MatchModel>> FindMatches();
-        Task<MatchModel> GetActiveMatch();
+        Task<MatchModel?> GetActiveMatch();
         Task<MatchModel> GetMatch(int id);
         Task<List<ParticipantModel>> GetParticipantsForMatch(int id);
         Task<List<ParticipantModel>> GetParticipantsForMatchByDeviceID(int id, string deviceID);
