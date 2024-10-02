@@ -1,11 +1,10 @@
+using CentaurScores.CompetitionLogic;
 using CentaurScores.Model;
 using CentaurScores.Persistence;
 using CentaurScores.Services;
 using CentaurScoresAPI;
-using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Pqc.Crypto.Lms;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -22,6 +21,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddTransient<ITokenService, TokenService>();
 builder.Services.AddTransient<IMatchRepository, MatchRepository>();
 builder.Services.AddTransient<ICompetitionRepository, CompetitionRepository>();
+
+builder.AddCompetitionTypes();
 
 var app = builder.Build();
 

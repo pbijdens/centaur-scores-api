@@ -1,7 +1,9 @@
-﻿using CentaurScores.Model;
+﻿using CentaurScores.CompetitionLogic;
+using CentaurScores.Model;
 using CentaurScores.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using MySqlX.XDevAPI.Common;
 using System.Configuration;
 
 namespace CentaurScores.Services
@@ -9,25 +11,107 @@ namespace CentaurScores.Services
     public class CompetitionRepository : ICompetitionRepository
     {
         private readonly IConfiguration configuration;
+        private readonly IEnumerable<IRuleService> ruleServices;
 
-        public CompetitionRepository(IConfiguration configuration)
+        public CompetitionRepository(IConfiguration configuration, IEnumerable<IRuleService> ruleServices)
         {
             this.configuration = configuration;
+            this.ruleServices = ruleServices;
         }
 
-        public async Task<ParticipantListModel?> CreateParticipantList(ParticipantListModel model)
+        public async Task<CompetitionResultModel?> CalculateCompetitionResult(int competitionId)
         {
-            ParticipantListEntity participantListEntity = new();
-            participantListEntity.UpdateFromModel(model);
+            IRuleService? applicableRuleService = null;
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+                CompetitionEntity? foundEntity = await db.Competitons.FirstOrDefaultAsync(x => x.Id == competitionId);
+                if (foundEntity != null)
+                {
+                    foreach (var service in ruleServices)
+                    {
+                        List<RulesetModel> supportedRulesets = await service.GetSupportedRulesets();
+                        if (supportedRulesets.Any(x => x.GroupName == foundEntity.RulesetGroupName))
+                        {
+                            applicableRuleService = service;
+                            break;
+                        }
+                    }
+                }
+            }
 
+            // If any service could be found, use it.
+            if (applicableRuleService != null)
+            {
+                return await applicableRuleService.CalculateCompetitionResult(competitionId);
+            }
+            return null;
+        }
+
+        public async Task<MatchResultModel?> CalculateSingleMatchResult(int matchId)
+        {
+            IRuleService? applicableRuleService = null;
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+                MatchEntity? foundEntity = await db.Matches.FirstOrDefaultAsync(x => x.Id == matchId);
+                if (foundEntity != null)
+                {
+                    foreach (var service in ruleServices)
+                    {
+                        List<RulesetModel> supportedRulesets = await service.GetSupportedRulesets();
+                        if (supportedRulesets.Any(x => x.Code == foundEntity.RulesetCode))
+                        {
+                            applicableRuleService = service;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // If any service could be found, use it.
+            if (applicableRuleService != null)
+            {
+                return await applicableRuleService.CalculateSingleMatchResult(matchId);
+            }
+            return null;
+        }
+
+        public async Task<CompetitionModel?> CreateCompetition(CompetitionModel model)
+        {
             int createdObjectId = -1;
             using (var db = new CentaurScoresDbContext(configuration))
             {
                 db.Database.EnsureCreated();
 
-                EntityEntry<ParticipantListEntity> result = await db.ParticipantLists.AddAsync(participantListEntity);
+                CompetitionEntity newEntity = new();
+                newEntity.UpdateMetadataFromModel(model);
+                if (model.ParticipantsList != null)
+                {
+                    newEntity.ParticipantList = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == model.ParticipantsList.Id);
+                }
+                // We do not take matches as input, that relationship is built the other way
+
+                EntityEntry<CompetitionEntity> createdEntityEntry = await db.Competitons.AddAsync(newEntity);
                 await db.SaveChangesAsync();
-                createdObjectId = result.Entity?.Id ?? -1;
+                createdObjectId = createdEntityEntry.Entity?.Id ?? -1;
+            }
+            return await GetCompetition(createdObjectId);
+        }
+
+        public async Task<ParticipantListModel?> CreateParticipantList(ParticipantListModel model)
+        {
+            int createdObjectId = -1;
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                ParticipantListEntity newEntity = new();
+                newEntity.UpdateFromModel(model);
+
+                db.Database.EnsureCreated();
+
+                EntityEntry<ParticipantListEntity> createdEntityEntry = await db.ParticipantLists.AddAsync(newEntity);
+                await db.SaveChangesAsync();
+                createdObjectId = createdEntityEntry.Entity?.Id ?? -1;
             }
             return await GetParticipantList(createdObjectId);
         }
@@ -60,16 +144,33 @@ namespace CentaurScores.Services
             }
         }
 
+        public async Task<int> DeleteCompetition(int competitionId)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                CompetitionEntity? foundEntity = await db.Competitons.FirstOrDefaultAsync(x => x.Id == competitionId);
+                if (null != foundEntity)
+                {
+                    db.Competitons.Remove(foundEntity);
+                    await db.SaveChangesAsync();
+                    return 1;
+                }
+            }
+            return 0;
+        }
+
         public async Task<int> DeleteParticipantList(int listId)
         {
             using (var db = new CentaurScoresDbContext(configuration))
             {
                 db.Database.EnsureCreated();
 
-                ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
-                if (null != participantListEntity)
+                ParticipantListEntity? foundEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
+                if (null != foundEntity)
                 {
-                    db.ParticipantLists.Remove(participantListEntity);
+                    db.ParticipantLists.Remove(foundEntity);
                     await db.SaveChangesAsync();
                     return 1;
                 }
@@ -83,15 +184,60 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                ParticipantListEntryEntity? participantListEntryEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId);
-                if (null != participantListEntryEntity)
+                ParticipantListEntryEntity? foundEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId);
+                if (null != foundEntity)
                 {
-                    db.ParticipantListEntries.Remove(participantListEntryEntity);
+                    db.ParticipantListEntries.Remove(foundEntity);
                     await db.SaveChangesAsync();
                     return 1;
                 }
             }
             return 0;
+        }
+
+        public async Task<CompetitionModel?> GetCompetition(int competitionId)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                CompetitionEntity? foundEntity = await db.Competitons.Include(x => x.ParticipantList).Include(x => x.Matches).FirstOrDefaultAsync(x => x.Id == competitionId);
+                if (null != foundEntity)
+                {
+                    CompetitionModel result = foundEntity.ToMetadataModel();
+                    if (foundEntity.ParticipantList != null)
+                    {
+                        result.ParticipantsList = new()
+                        {
+                            Id = foundEntity.ParticipantList.Id,
+                            Name = foundEntity.ParticipantList.Name,
+                        };
+                    }
+                    if (foundEntity.Matches != null)
+                    {
+                        result.Matches = foundEntity.Matches.Select(m => new MatchMetadataModel { 
+                            Id = m.Id,
+                            MatchCode = m.MatchCode,
+                            MatchName = m.MatchName,
+                            RulesetCode = m.RulesetCode
+                        }).ToList();
+                    }
+                    return result;
+                }
+            }
+            return null;
+        }
+
+        public async Task<List<CompetitionModel>> GetCompetitions()
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                return (await db.Competitons.OrderByDescending(x => x.StartDate).ThenBy(x => x.Name).ToListAsync())
+                    .Select(x => x.ToMetadataModel())
+                    .ToList();
+            }
         }
 
         public async Task<ParticipantListModel?> GetParticipantList(int listId)
@@ -146,6 +292,33 @@ namespace CentaurScores.Services
                 db.Database.EnsureCreated();
                 return await Task.FromResult(db.ParticipantLists.OrderBy(x => x.Name).ToList().Select(x => x.ToModel()).ToList());
             }
+        }
+
+        public async Task<List<RulesetModel>> GetRulesets()
+        {
+            List<RulesetModel> result = [];
+            foreach (var service in ruleServices)
+            {
+                result.AddRange(await service.GetSupportedRulesets());
+            }
+            return result;
+        }
+
+        public async Task<CompetitionModel?> UpdateCompetition(int competitionId, CompetitionModel model)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                CompetitionEntity? foundEntity = await db.Competitons.FirstOrDefaultAsync(x => x.Id == competitionId);
+                if (null != foundEntity)
+                {
+                    foundEntity.UpdateMetadataFromModel(model);
+                    await db.SaveChangesAsync();
+                    return await GetCompetition(competitionId);
+                }
+            }
+            throw new ArgumentException(nameof(competitionId), $"A competition with that ID does not exist");
         }
 
         public async Task<ParticipantListModel?> UpdateParticipantList(int listId, ParticipantListModel model)

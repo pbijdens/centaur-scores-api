@@ -126,6 +126,7 @@ namespace CentaurScores.Services
                     TargetsJSON = JsonConvert.SerializeObject(match.Targets),
                     MatchCode = match.MatchCode,
                     MatchName = match.MatchName,
+                    RulesetCode = match.RulesetCode,
                 };
                 var result = db.Matches.Add(entity);
                 await db.SaveChangesAsync();
@@ -251,6 +252,7 @@ namespace CentaurScores.Services
                 matchEntity.SubgroupsJSON = JsonConvert.SerializeObject(match.Subgroups);
                 matchEntity.TargetsJSON = JsonConvert.SerializeObject(match.Targets);
                 matchEntity.LijnenJSON = JsonConvert.SerializeObject(match.Lijnen);
+                matchEntity.RulesetCode = match.RulesetCode;
 
                 await db.SaveChangesAsync();
             }

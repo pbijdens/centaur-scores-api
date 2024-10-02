@@ -18,6 +18,7 @@ namespace CentaurScores.Persistence
         public DbSet<CsSetting> Settings { get; set; }
         public DbSet<ParticipantListEntity> ParticipantLists { get; set; }
         public DbSet<ParticipantListEntryEntity> ParticipantListEntries { get; set; }
+        public DbSet<CompetitionEntity> Competitons { get; set; }
 
         public CentaurScoresDbContext(IConfiguration configuration)
         {
@@ -74,6 +75,17 @@ namespace CentaurScores.Persistence
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.Property(e => e.Name).IsRequired();
+            });
+
+            modelBuilder.Entity<CompetitionEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).IsRequired();
+                // optional one-to-many
+                entity.HasOne(e => e.ParticipantList).WithMany(p => p.Competitions).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
+                // optional meny-to-one
+                entity.HasMany(e => e.Matches).WithOne(m => m.Competiton).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
             });
         }
     }

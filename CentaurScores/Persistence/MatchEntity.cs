@@ -22,6 +22,8 @@ namespace CentaurScores.Persistence
         public string TargetsJSON { get; set; } = "[]";
         public string LijnenJSON { get; set; } = "[]";
         public List<ParticipantEntity> Participants { get; set; } = new();
+        public CompetitionEntity? Competiton { get; set; } = null;
+        public string? RulesetCode { get; set; } = null;
 
         internal MatchModel ToModel()
         {
@@ -39,20 +41,8 @@ namespace CentaurScores.Persistence
                 MatchName = MatchName,
                 NumberOfEnds = NumberOfEnds,
                 ScoreValues = JsonConvert.DeserializeObject<Dictionary<string, List<ScoreButtonDefinition>>>(ScoreValuesJson) ?? new(),
+                RulesetCode = RulesetCode,
             };
-        }
-
-        internal void UpdateFromModel(MatchModel match)
-        {
-            ArrowsPerEnd = match.ArrowsPerEnd;
-            AutoProgressAfterEachArrow = match.AutoProgressAfterEachArrow;
-            GroupsJSON = JsonConvert.SerializeObject(match.Groups);
-            LijnenJSON = JsonConvert.SerializeObject(match.Lijnen);
-            NumberOfEnds = match.NumberOfEnds;
-            ScoreValuesJson = JsonConvert.SerializeObject(match.ScoreValues);
-            SubgroupsJSON = JsonConvert.SerializeObject(match.Subgroups);
-            MatchCode = match.MatchCode;
-            MatchName = match.MatchName;
         }
     }
 }

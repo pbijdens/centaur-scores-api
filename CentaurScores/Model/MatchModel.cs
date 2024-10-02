@@ -18,5 +18,6 @@ namespace CentaurScores.Model
         public List<GroupInfo> Subgroups { get; set; } = new();
         public List<GroupInfo> Targets { get; set; } = new();
         public List<string> Lijnen { get; set; } = new();
+        public string? RulesetCode { get; set; } = null;
     }
 }
