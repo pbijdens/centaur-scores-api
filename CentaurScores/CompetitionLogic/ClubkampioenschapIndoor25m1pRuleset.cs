@@ -1,42 +1,35 @@
 ﻿using CentaurScores.Model;
 using CentaurScores.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Org.BouncyCastle.Crypto.Macs;
+using System.Collections.Generic;
+using System.Reflection.Metadata.Ecma335;
 
 namespace CentaurScores.CompetitionLogic
 {
-    public class LancasterRuleset : TotalScoreBasedResultCalculatorBase<TsbTieBreakingComparer>, IRuleService
+    public class ClubkampioenschapIndoor25m1pRuleset : TotalScoreBasedResultCalculatorBase<TsbTieBreakingComparer>, IRuleService
     {
-        private const string GroupName = "Indoor Lancaster";
+        private const string GroupName = "Clubkampioenschap Indoor 25m1p";
         private static readonly List<RulesetModel> RulsetDefinitions = new List<RulesetModel>
             {
                 new RulesetModel
                 {
                     GroupName = GroupName,
-                    Code = "LANV",
-                    Name = "Lancaster Voorronde",
-                    RequiredArrowsPerEnd = 3,
-                    RequiredEnds = 10,
+                    Code = "ck25m1p",
+                    Name = "Clubkampioenschap Indoor 25m1p",
+                    RequiredArrowsPerEnd = 5,
+                    RequiredEnds = 5,
                     RequiredClasses = RulesetConstants.Classes,
                     RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
-                    RequiredTargets = RulesetConstants.TargetsLancaster,
-                    RequiredScoreValues = RulesetConstants.KeyboardsLancaster
-                },
-                new RulesetModel
-                {                    
-                    GroupName = GroupName,
-                    Code = "LANF",
-                    Name = "Lancaster Finaleronde",
-                    RequiredArrowsPerEnd = 3,
-                    RequiredEnds = 10,
-                    RequiredClasses = RulesetConstants.Classes,
-                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
-                    RequiredTargets = RulesetConstants.TargetsLancasterFinale,
-                    RequiredScoreValues = RulesetConstants.KeyboardsLancasterFinale
+                    RequiredTargets = RulesetConstants.Targets25M,
+                    RequiredScoreValues = RulesetConstants.Keyboards25M
                 },
             };
-        private readonly ILogger<LancasterRuleset> logger;
+        private readonly ILogger<ClubkampioenschapIndoor25m1pRuleset> logger;
         private readonly IConfiguration configuration;
 
-        public LancasterRuleset(ILogger<LancasterRuleset> logger, IConfiguration configuration)
+        public ClubkampioenschapIndoor25m1pRuleset(ILogger<ClubkampioenschapIndoor25m1pRuleset> logger, IConfiguration configuration)
         {
             this.logger = logger;
             this.configuration = configuration;
@@ -62,3 +55,4 @@ namespace CentaurScores.CompetitionLogic
         }
     }
 }
+

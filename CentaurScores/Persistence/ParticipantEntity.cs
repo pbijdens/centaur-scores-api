@@ -35,6 +35,26 @@ namespace CentaurScores.Persistence
             };
         }
 
+        internal ParticipantModelV2 ToModelV2(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets)
+        {
+            return new()
+            {
+                Id = Id ?? -1,
+                Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? new(),
+                Score = Score,
+                Group = Group,
+                Lijn = Lijn,
+                Name = Name,
+                Subgroup = Subgroup,
+                Target = Target,
+                DeviceID = DeviceID,
+                ParticipantListEntryId = ParticipantListEntryId,
+                GroupName = (groups ?? []).FirstOrDefault(e => e.Code == Group)?.Label,
+                SubgroupName = (subgroups ?? []).FirstOrDefault(e => e.Code == Subgroup)?.Label,
+                TargetName = (targets ?? []).FirstOrDefault(e => e.Code == Target)?.Label,
+            };
+        }
+
         internal void UpdateFromModel(ParticipantModel data)
         {
             Name = data.Name;

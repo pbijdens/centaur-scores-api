@@ -23,7 +23,7 @@ namespace CentaurScores.Controllers
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<ParticipantModel>>> GetParticipantsForMatch([FromRoute] int id)
+        public async Task<ActionResult<List<ParticipantModelV2>>> GetParticipantsForMatch([FromRoute] int id)
         {
             return await matchRepository.GetParticipantsForMatch(id);
         }
@@ -71,6 +71,54 @@ namespace CentaurScores.Controllers
         public async Task<ActionResult<bool>> TransferParticipantToDevice([FromRoute] int id, [FromRoute] int participantId, [FromRoute] string targetDeviceID, [FromRoute] string lijn)
         {
             return await matchRepository.TransferParticipantForMatchToDevice(id, participantId, targetDeviceID, lijn);
+        }
+
+        /// <summary>
+        /// Returns a single participant.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("{participantId}/scoresheet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ParticipantModel>> GetParticipantForMatch([FromRoute] int id, [FromRoute] int participantId)
+        {
+            return await matchRepository.GetParticipantForMatch(id, participantId);
+        }
+
+        /// <summary>
+        /// Updates a single participant (removing it from all devices)
+        /// </summary>
+        /// <returns></returns>
+        [HttpPut("{participantId}/scoresheet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ParticipantModel>> UpdateParticipantForMatch([FromRoute] int id, [FromRoute] int participantId, [FromBody] ParticipantModel participant)
+        {
+            return await matchRepository.UpdateParticipantForMatch(id, participantId, participant);
+        }
+
+        /// <summary>
+        /// Deletes a single participant for a match
+        /// </summary>
+        /// <returns></returns>
+        [HttpDelete("{participantId}/scoresheet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<int>> DeleteParticipantForMatch([FromRoute] int id, [FromRoute] int participantId)
+        {
+            return await matchRepository.DeleteParticipantForMatch(id, participantId);
+        }
+
+        /// <summary>
+        /// Creates a new participant
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost("scoresheet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<ParticipantModel>> CreateParticipantForMatch([FromRoute] int id, [FromBody] ParticipantModel participant)
+        {
+            return await matchRepository.CreateParticipantForMatch(id, participant);
         }
     }
 }

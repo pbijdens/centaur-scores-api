@@ -1,7 +1,9 @@
-﻿using CentaurScores.Model;
+﻿using CentaurScores.Migrations;
+using CentaurScores.Model;
 using CentaurScores.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Logging.Abstractions;
 using MySqlX.XDevAPI.Common;
 using Newtonsoft.Json;
@@ -19,7 +21,7 @@ namespace CentaurScores.Services
             this.configuration = configuration;
         }
 
-        private static void AutoFixParticipantModel(MatchModel match, ParticipantModel participant)
+        public static void AutoFixParticipantModel(MatchModel match, ParticipantModel participant)
         {
             participant.Ends ??= new();
             if (participant.Ends.Count != match.NumberOfEnds)
@@ -53,6 +55,11 @@ namespace CentaurScores.Services
                         participant.Score += end.Score ?? 0;
                     }
                 }
+            }
+            else
+            {
+                participant.Ends.ForEach(e => e.Score = e.Arrows.Sum(a => a ?? 0));
+                participant.Score = participant.Ends.Sum(e => e.Arrows.Sum(a => a ?? 0));
             }
         }
 
@@ -205,15 +212,31 @@ namespace CentaurScores.Services
             }
         }
 
-        public async Task<List<ParticipantModel>> GetParticipantsForMatch(int id)
+        public async Task<List<ParticipantModelV2>> GetParticipantsForMatch(int id)
         {
             using (var db = new CentaurScoresDbContext(configuration))
             {
                 db.Database.EnsureCreated();
 
-                List<ParticipantEntity> entities = await db.Participants.AsNoTracking().Where(x => x.Match.Id == id).OrderBy(entity => entity.Name).ToListAsync();
-                List<ParticipantModel> result = entities.Select(x => x.ToModel()).ToList();
-                return result;
+                MatchEntity? match = await db.Matches.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id);
+                if (null != match)
+                {
+                    GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(match.GroupsJSON ?? "[]") ?? [];
+                    GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(match.SubgroupsJSON ?? "[]") ?? [];
+                    GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(match.TargetsJSON ?? "[]") ?? [];
+
+                    List<ParticipantEntity> entities = await db.Participants.AsNoTracking().Where(x => x.Match.Id == id).OrderBy(entity => entity.Name).ToListAsync();
+                    List<ParticipantModelV2> result = entities.Select(x => x.ToModelV2(groups, subgroups, targets)).ToList();
+                    result.ForEach(x =>
+                    {
+                        AutoFixParticipantModel(match.ToModel(), x);
+                    });
+                    return result;
+                }
+                else
+                {
+                    throw new ArgumentException(nameof(id), "Not a match");
+                }
             }
         }
 
@@ -349,7 +372,7 @@ namespace CentaurScores.Services
 
                 // If there is currently someone configured for this lijn, remove that record
                 ParticipantEntity? existingParticipant = db.Participants.Where(x => x.Match.Id == id && x.DeviceID == targetDeviceID && x.Lijn == lijn).FirstOrDefault();
-                if (null != existingParticipant && existingParticipant.Id != participantId) 
+                if (null != existingParticipant && existingParticipant.Id != participantId)
                 {
                     db.Participants.Remove(existingParticipant);
                     await db.SaveChangesAsync();
@@ -362,6 +385,107 @@ namespace CentaurScores.Services
                 await db.SaveChangesAsync();
 
                 return true;
+            }
+        }
+
+        public async Task<ParticipantModel> GetParticipantForMatch(int id, int participantId)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                MatchModel? matchModel = (await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync())?.ToModel();
+                if (null == matchModel)
+                {
+                    throw new InvalidOperationException($"This ID ({id}) is not a valid match.");
+                }
+
+                ParticipantEntity? participantEntity = await db.Participants.AsNoTracking().Where(x => x.Id == participantId).FirstOrDefaultAsync();
+                if (null == participantEntity)
+                {
+                    throw new InvalidOperationException($"This ID ({id}) is not a valid participant.");
+                }
+
+                ParticipantModel model = participantEntity.ToModel();
+                AutoFixParticipantModel(matchModel, model);
+
+                return model;
+            }
+        }
+
+        public async Task<ParticipantModel> UpdateParticipantForMatch(int id, int participantId, ParticipantModel participant)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                MatchModel? matchModel = (await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync())?.ToModel();
+                if (null == matchModel)
+                {
+                    throw new ArgumentException(nameof(id), $"This ID ({id}) is not a valid match.");
+                }
+
+                ParticipantEntity? participantEntity = await db.Participants.Where(x => x.Id == participantId).FirstOrDefaultAsync();
+                if (null == participantEntity)
+                {
+                    throw new ArgumentException(nameof(participantId), $"This ID ({id}) is not a valid participant.");
+                }
+
+                AutoFixParticipantModel(matchModel, participant);
+                participantEntity.UpdateFromModel(participant);
+
+                // Remove this participant from the device that's managing it because we made changes
+                // elsewhere. This should ensure the participant 
+                participantEntity.DeviceID = string.Empty;
+
+                await db.SaveChangesAsync();
+
+                return await GetParticipantForMatch(id, participantId);
+            }
+        }
+
+        public async Task<int> DeleteParticipantForMatch(int id, int participantId)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                ParticipantEntity? foundEntity = await db.Participants.FirstOrDefaultAsync(x => x.Id == participantId);
+                if (null != foundEntity)
+                {
+                    db.Participants.Remove(foundEntity);
+                    await db.SaveChangesAsync();
+                    return 1;
+                }
+            }
+            return 0;
+        }
+
+        public async Task<ParticipantModel> CreateParticipantForMatch(int id, ParticipantModel participantModel)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                MatchEntity? matchEntity = await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync();
+                if (null == matchEntity)
+                {
+                    throw new ArgumentException(nameof(id), $"This ID ({id}) is not a valid match.");
+                }
+
+                ParticipantEntity participantEntity = new ParticipantEntity()
+                {
+                    Match = matchEntity,
+                    Lijn = String.Empty,
+                    DeviceID = String.Empty,
+                };
+                AutoFixParticipantModel(matchEntity.ToModel(), participantModel);
+                participantEntity.UpdateFromModel(participantModel);
+                EntityEntry<ParticipantEntity> newEntity = db.Participants.Add(participantEntity);
+
+                await db.SaveChangesAsync();
+
+                return await GetParticipantForMatch(id, newEntity.Entity.Id ?? -1);
             }
         }
     }
