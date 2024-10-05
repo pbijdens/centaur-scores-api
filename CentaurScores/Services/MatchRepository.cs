@@ -419,7 +419,8 @@ namespace CentaurScores.Services
             {
                 db.Database.EnsureCreated();
 
-                MatchModel? matchModel = (await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync())?.ToModel();
+                MatchEntity matchEntity = await db.Matches.SingleAsync(entity => entity.Id == id);
+                MatchModel matchModel = matchEntity.ToModel();
                 if (null == matchModel)
                 {
                     throw new ArgumentException(nameof(id), $"This ID ({id}) is not a valid match.");
@@ -434,9 +435,14 @@ namespace CentaurScores.Services
                 AutoFixParticipantModel(matchModel, participant);
                 participantEntity.UpdateFromModel(participant);
 
+#if false
                 // Remove this participant from the device that's managing it because we made changes
                 // elsewhere. This should ensure the participant 
                 participantEntity.DeviceID = string.Empty;
+#endif
+                // Instead of clearing the device ID, we mark the match as having changed remotely, causing a
+                // reload on sync.
+                matchEntity.ChangedRemotely = true;
 
                 await db.SaveChangesAsync();
 
@@ -486,6 +492,21 @@ namespace CentaurScores.Services
                 await db.SaveChangesAsync();
 
                 return await GetParticipantForMatch(id, newEntity.Entity.Id ?? -1);
+            }
+        }
+
+        public async Task ClearRemotelyChangedFlag(int matchId)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                MatchEntity match = await db.Matches.SingleAsync(entity => entity.Id == matchId);
+                if (null == match)
+                {
+                    throw new ArgumentException(nameof(matchId), $"This ID ({matchId}) is not a valid match.");
+                }
+                match.ChangedRemotely = false;
             }
         }
     }

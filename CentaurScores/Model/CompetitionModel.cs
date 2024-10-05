@@ -15,6 +15,10 @@
         /// </summary>
         public string? RulesetGroupName { get; set; } = null;
         /// <summary>
+        /// Optional parameters to go with the ruleset.
+        /// </summary>
+        public string? RulesetParametersJSON { get; set; } = null;
+        /// <summary>
         /// Start date of the competition, informative. YYYY-MM-DD
         /// </summary>
         public string? StartDate { get; set; } = null;

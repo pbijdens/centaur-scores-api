@@ -46,6 +46,12 @@
         public List<GroupInfo> RequiredTargets { get; set; } = [];
 
         /// <summary>
+        /// Defines parameters that may be passed to the ruleset processor via the competiton
+        /// entity to influence how scoring rules are being evaluated.
+        /// </summary>
+        public List<RulesetParameterInfo> Parameters { get; set; } = [];
+
+        /// <summary>
         /// Defines one keyboard per target type.
         /// </summary>
         public Dictionary<string, List<ScoreButtonDefinition>> RequiredScoreValues { get; set; } = [];

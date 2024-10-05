@@ -7,6 +7,7 @@
     {
         public string Name { get; set; } = string.Empty;
         public string RulesetGroupName { get; set; } = string.Empty;
+        public string RulesetParametersJSON { get; set; } = string.Empty;
 
         public List<GroupInfo> Groups {  get; set; } = [];
         public List<GroupInfo> Subgroups { get; set; } = [];

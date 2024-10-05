@@ -115,7 +115,7 @@ namespace CentaurScores.Controllers
 
 
         /// <summary>
-        /// Returns a single participants list.
+        /// Returns results for a single match.
         /// </summary>
         /// <returns></returns>
         [HttpGet("{id}/results")]
@@ -126,6 +126,19 @@ namespace CentaurScores.Controllers
             MatchResultModel? result = await competitionRepository.CalculateSingleMatchResult(matchId: id);
             if (null == result) throw new ArgumentException(nameof(id), "Bad match ID");
             return result;
+        }
+        
+        /// <summary>
+        /// Returns a single participants list.
+        /// </summary>
+        /// <returns></returns>
+        [HttpDelete("{id}/remotelychanged")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<int>> ClearRemotelyChangedFlag([FromRoute] int id)
+        {
+            await matchRepository.ClearRemotelyChangedFlag(matchId: id);
+            return 0;
         }
     }
 }

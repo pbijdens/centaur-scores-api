@@ -6,6 +6,7 @@ namespace CentaurScores.Services
     public interface IMatchRepository
     {
         Task<MatchModel> ActivateMatch(int id, bool isActive);
+        Task ClearRemotelyChangedFlag(int matchId);
         Task<MatchModel> CreateMatch(MatchModel match);
         Task<ParticipantModel> CreateParticipantForMatch(int id, ParticipantModel participant);
         Task<bool> DeleteMatch(int id);

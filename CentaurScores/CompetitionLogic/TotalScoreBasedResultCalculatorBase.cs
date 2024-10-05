@@ -91,6 +91,7 @@ namespace CentaurScores.CompetitionLogic
             {
                 Name = state.CompetitionEntity.Name,
                 RulesetGroupName = state.CompetitionEntity.RulesetGroupName ?? string.Empty,
+                RulesetParametersJSON = state.CompetitionEntity.RulesetParametersJSON ?? string.Empty,
                 Groups = state.MatchResultsByRuleset.Values.SelectMany(x => x.SelectMany(y => y.Groups)).Distinct().ToList(),
                 Subgroups = state.MatchResultsByRuleset.Values.SelectMany(x => x.SelectMany(y => y.Subgroups)).Distinct().ToList(),
             };

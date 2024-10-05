@@ -20,5 +20,6 @@ namespace CentaurScores.Model
         public List<string> Lijnen { get; set; } = new();
         public string? RulesetCode { get; set; } = null;
         public CompetitionModel? Competition { get; set; } = null;
+        public bool ChangedRemotely { get; set; } = false;
     }
 }

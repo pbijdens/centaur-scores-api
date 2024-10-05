@@ -24,6 +24,7 @@ namespace CentaurScores.Persistence
         public List<ParticipantEntity> Participants { get; set; } = new();
         public CompetitionEntity? Competition { get; set; } = null;
         public string? RulesetCode { get; set; } = null;
+        public bool? ChangedRemotely {  get; set; } = false;
 
         internal MatchModel ToModel()
         {
@@ -43,6 +44,7 @@ namespace CentaurScores.Persistence
                 ScoreValues = JsonConvert.DeserializeObject<Dictionary<string, List<ScoreButtonDefinition>>>(ScoreValuesJson) ?? new(),
                 RulesetCode = RulesetCode,
                 Competition = Competition?.ToMetadataModel(),
+                ChangedRemotely = ChangedRemotely ?? false,
             };
         }
     }
