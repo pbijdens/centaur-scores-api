@@ -85,7 +85,7 @@ namespace CentaurScores.Persistence
                 // optional one-to-many
                 entity.HasOne(e => e.ParticipantList).WithMany(p => p.Competitions).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
                 // optional meny-to-one
-                entity.HasMany(e => e.Matches).WithOne(m => m.Competition).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
+                entity.HasMany(e => e.Matches).WithOne(m => m.Competition).OnDelete(DeleteBehavior.Cascade).IsRequired(false);
             });
         }
     }
