@@ -129,7 +129,7 @@ namespace CentaurScores.Controllers
         }
         
         /// <summary>
-        /// Returns a single participants list.
+        /// Clears the remotely changed flag, which indicates 
         /// </summary>
         /// <returns></returns>
         [HttpDelete("{id}/remotelychanged")]

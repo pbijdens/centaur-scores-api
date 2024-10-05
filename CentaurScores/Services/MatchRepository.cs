@@ -370,6 +370,11 @@ namespace CentaurScores.Services
                     throw new InvalidOperationException($"TransferParticipantForMatchToDevice invoked for non-existing participant {participantId}");
                 }
 
+                if (!string.IsNullOrWhiteSpace(participant.DeviceID) && participant.DeviceID != Guid.Empty.ToString())
+                {
+                    await RequestDeviceSynchronization(db, participant.DeviceID);
+                }
+
                 // If there is currently someone configured for this lijn, remove that record
                 ParticipantEntity? existingParticipant = db.Participants.Where(x => x.Match.Id == id && x.DeviceID == targetDeviceID && x.Lijn == lijn).FirstOrDefault();
                 if (null != existingParticipant && existingParticipant.Id != participantId)
@@ -381,6 +386,8 @@ namespace CentaurScores.Services
                 // Update the transferred record
                 participant.DeviceID = targetDeviceID;
                 participant.Lijn = lijn;
+
+                await RequestDeviceSynchronization(db, targetDeviceID);
 
                 await db.SaveChangesAsync();
 
@@ -435,14 +442,7 @@ namespace CentaurScores.Services
                 AutoFixParticipantModel(matchModel, participant);
                 participantEntity.UpdateFromModel(participant);
 
-#if false
-                // Remove this participant from the device that's managing it because we made changes
-                // elsewhere. This should ensure the participant 
-                participantEntity.DeviceID = string.Empty;
-#endif
-                // Instead of clearing the device ID, we mark the match as having changed remotely, causing a
-                // reload on sync.
-                matchEntity.ChangedRemotely = true;
+                await RequestDeviceSynchronization(db, participant.DeviceID);
 
                 await db.SaveChangesAsync();
 
@@ -459,6 +459,10 @@ namespace CentaurScores.Services
                 ParticipantEntity? foundEntity = await db.Participants.FirstOrDefaultAsync(x => x.Id == participantId);
                 if (null != foundEntity)
                 {
+                    if (!string.IsNullOrWhiteSpace(foundEntity.DeviceID) && foundEntity.DeviceID != Guid.Empty.ToString())
+                    {
+                        await RequestDeviceSynchronization(db, foundEntity.DeviceID);
+                    }
                     db.Participants.Remove(foundEntity);
                     await db.SaveChangesAsync();
                     return 1;
@@ -469,7 +473,7 @@ namespace CentaurScores.Services
 
         public async Task<ParticipantModel> CreateParticipantForMatch(int id, ParticipantModel participantModel)
         {
-            using (var db = new CentaurScoresDbContext(configuration))
+            using (CentaurScoresDbContext db = new CentaurScoresDbContext(configuration))
             {
                 db.Database.EnsureCreated();
 
@@ -508,6 +512,57 @@ namespace CentaurScores.Services
                 }
                 match.ChangedRemotely = false;
             }
+        }
+
+        private async Task RequestDeviceSynchronization(CentaurScoresDbContext db, string deviceId)
+        {
+            // TODO: Might want to use some form of cross-process synchronization here because multiple clients might requets this at the same time.
+            CsSetting? setting = await db.Settings.FirstOrDefaultAsync(x => x.Name == CsSetting.DevicesNeedingForcedSync);
+            if (null == setting)
+            {
+                setting = new CsSetting { Name = CsSetting.DevicesNeedingForcedSync, JsonValue = JsonConvert.SerializeObject(new string[] { deviceId }) };
+                db.Add(setting);
+            }
+            else
+            {
+                List<string> values = JsonConvert.DeserializeObject<List<string>>(setting.JsonValue ?? "[]") ?? [];
+                if (!values.Contains(deviceId)) values.Add(deviceId);
+                setting.JsonValue = JsonConvert.SerializeObject(values);
+            }
+        }
+
+        public async Task ClearDeviceSynchronization(string deviceId)
+        {
+            // TODO: Might want to use some form of cross-process synchronization here because multiple clients might requets this at the same time.
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                CsSetting? setting = await db.Settings.FirstOrDefaultAsync(x => x.Name == CsSetting.DevicesNeedingForcedSync);
+                if (null != setting)
+                {
+                    List<string> values = JsonConvert.DeserializeObject<List<string>>(setting.JsonValue ?? "[]") ?? [];
+                    if (values.Contains(deviceId)) values.RemoveAll(x => x == deviceId);
+                    setting.JsonValue = JsonConvert.SerializeObject(values);
+                    await db.SaveChangesAsync();
+                }
+            }
+        }
+
+        public async Task<bool> CheckDeviceSynchronization(string deviceId)
+        {
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                db.Database.EnsureCreated();
+
+                CsSetting? setting = await db.Settings.AsNoTracking().FirstOrDefaultAsync(x => x.Name == CsSetting.DevicesNeedingForcedSync);
+                if (null != setting)
+                {
+                    List<string> values = JsonConvert.DeserializeObject<List<string>>(setting.JsonValue ?? "[]") ?? [];
+                    return values.Contains(deviceId);
+                }
+            }
+            return false;
         }
     }
 }
