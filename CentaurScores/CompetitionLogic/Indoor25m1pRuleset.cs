@@ -8,7 +8,7 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace CentaurScores.CompetitionLogic
 {
-    public class Indoor25m1pRuleset : TotalScoreBasedResultCalculatorBase<TsbTieBreakingComparer>, IRuleService
+    public class Indoor25m1pRuleset : TotalScoreBasedResultCalculatorBase<TsbTieBreakingComparer, TsbParticipantWrapperCompetitionComparer>, IRuleService
     {
         private const string GroupName = "Indoor 25m1p";
         private static readonly List<RulesetModel> RulsetDefinitions = new List<RulesetModel>
@@ -37,7 +37,11 @@ namespace CentaurScores.CompetitionLogic
 
         public async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)
         {
-            throw new NotImplementedException();
+            using (var db = new CentaurScoresDbContext(configuration))
+            {
+                var result = await CalculateCompetitionResultForDB(db, competitionId);
+                return result;
+            }
         }
 
         public async Task<MatchResultModel> CalculateSingleMatchResult(int matchId)

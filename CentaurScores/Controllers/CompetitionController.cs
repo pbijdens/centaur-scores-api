@@ -74,5 +74,19 @@ namespace CentaurScores.Controllers
         {
             return await competitionRepository.CreateCompetition(model);
         }
+
+        /// <summary>
+        /// Returns a single participants list.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("{competitionId}/results")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<CompetitionResultModel>> GetCompetitionResults([FromRoute] int competitionId)
+        {
+            CompetitionResultModel? result = await competitionRepository.CalculateCompetitionResult(competitionId);
+            if (null == result) throw new ArgumentException(nameof(competitionId), "Bad competition ID");
+            return result;
+        }
     }
 }

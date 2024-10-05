@@ -1,6 +1,8 @@
-﻿using CentaurScores.Model;
+﻿using CentaurScores.Migrations;
+using CentaurScores.Model;
 using CentaurScores.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileSystemGlobbing;
 using System.Text.RegularExpressions;
 
 namespace CentaurScores.Controllers
@@ -10,10 +12,13 @@ namespace CentaurScores.Controllers
     public class MatchesController
     {
         private readonly IMatchRepository matchRepository;
+        private readonly ICompetitionRepository competitionRepository;
 
-        public MatchesController(IMatchRepository matchRepository)
+        public MatchesController(IMatchRepository matchRepository,
+            ICompetitionRepository competitionRepository)
         {
             this.matchRepository = matchRepository;
+            this.competitionRepository = competitionRepository;
         }
 
         /// <summary>
@@ -106,6 +111,21 @@ namespace CentaurScores.Controllers
         public async Task<ActionResult<MatchModel>> ActivateMatch([FromRoute] int id, [FromRoute] bool isActive)
         {
             return await matchRepository.ActivateMatch(id, isActive);
+        }
+
+
+        /// <summary>
+        /// Returns a single participants list.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("{id}/results")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<MatchResultModel>> GetMatchResults([FromRoute] int id)
+        {
+            MatchResultModel? result = await competitionRepository.CalculateSingleMatchResult(matchId: id);
+            if (null == result) throw new ArgumentException(nameof(id), "Bad match ID");
+            return result;
         }
     }
 }

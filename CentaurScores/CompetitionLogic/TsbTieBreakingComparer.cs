@@ -25,6 +25,7 @@
                 int arrow = keysx[idx];
 
                 x.TiebreakerArrow = Math.Min(arrow, x.TiebreakerArrow);
+                y.TiebreakerArrow = Math.Min(arrow, y.TiebreakerArrow);
                 if (x.Tiebreakers[arrow] != y.Tiebreakers[arrow])
                 {
                     result = x.Tiebreakers[arrow].CompareTo(y.Tiebreakers[arrow]);
