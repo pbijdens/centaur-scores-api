@@ -375,11 +375,12 @@ namespace CentaurScores.Services
                     await RequestDeviceSynchronization(db, participant.DeviceID);
                 }
 
-                // If there is currently someone configured for this lijn, remove that record
+                // If there is currently someone configured for this lijn, change the device ID so it is no longer 
                 ParticipantEntity? existingParticipant = db.Participants.Where(x => x.Match.Id == id && x.DeviceID == targetDeviceID && x.Lijn == lijn).FirstOrDefault();
                 if (null != existingParticipant && existingParticipant.Id != participantId)
                 {
-                    db.Participants.Remove(existingParticipant);
+                    await RequestDeviceSynchronization(db, existingParticipant.DeviceID);
+                    existingParticipant.DeviceID = string.Empty;
                     await db.SaveChangesAsync();
                 }
 
