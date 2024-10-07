@@ -18,6 +18,8 @@ namespace CentaurScores.CompetitionLogic
     {
         private const int RequiredNumberOfMatchesSHouldBePartOfTheCompetitionEntity = 4;
 
+        public IParticipantNameComparer ParticipantNameComparer { get; protected set; } = new DefaultParticipantNameComparer();
+
         protected virtual async Task<CompetitionResultModel> CalculateCompetitionResultForDB(CentaurScoresDbContext db, int competitionId)
         {
             TsbCompetitionCalculationState state = new()
@@ -47,7 +49,7 @@ namespace CentaurScores.CompetitionLogic
             }
 
             // Next, build a list of participants, grouping them by name
-            List<string> allParticipants = state.MatchResultsByRuleset.SelectMany(mrl => mrl.Value.SelectMany(mr => mr.Ungrouped.Select(p => $"{p.ParticipantInfo}".TrimEnd('*')))).OrderBy(x => x).Distinct().ToList();
+            List<string> allParticipants = state.MatchResultsByRuleset.SelectMany(mrl => mrl.Value.SelectMany(mr => mr.Ungrouped.Select(p => $"{p.ParticipantInfo}".TrimEnd('*')))).OrderBy(x => x).Distinct(ParticipantNameComparer).ToList();
 
             // Create a wrapper, which essentially creates per participant a list of scores (or null) per match.
             List<TsbParticipantWrapperCompetition> wrappers = [];
@@ -181,7 +183,7 @@ namespace CentaurScores.CompetitionLogic
             wrapper.TotalScore = wrapper.TotalScoresPerRuleset.Values.Sum();
         }
 
-        private static void PopulateScoresForEachRulesetAndEachMatchPerRuleset(TsbCompetitionCalculationState state, string participantName, TsbParticipantWrapperCompetition wrapper, string group, string subGroup)
+        private void PopulateScoresForEachRulesetAndEachMatchPerRuleset(TsbCompetitionCalculationState state, string participantName, TsbParticipantWrapperCompetition wrapper, string group, string subGroup)
         {
             foreach ((string rulesetCode, List<MatchResultModel> matchResults) in state.MatchResultsByRuleset)
             {
@@ -190,7 +192,7 @@ namespace CentaurScores.CompetitionLogic
                     if (!wrapper.ScoresPerRuleset.ContainsKey(rulesetCode)) wrapper.ScoresPerRuleset[rulesetCode] = [];
                     if (matchResult.BySubclass.ContainsKey(group) && matchResult.BySubclass[group].ContainsKey(subGroup))
                     {
-                        wrapper.ScoresPerRuleset[rulesetCode].Add(matchResult.BySubclass[group][subGroup].FirstOrDefault(p => $"{p.ParticipantInfo}".TrimEnd('*') == participantName)?.ScoreInfo?.FirstOrDefault());
+                        wrapper.ScoresPerRuleset[rulesetCode].Add(matchResult.BySubclass[group][subGroup].FirstOrDefault(p => ParticipantNameComparer.Equals($"{p.ParticipantInfo}".TrimEnd('*'), participantName))?.ScoreInfo?.FirstOrDefault());
                     } else
                     {
                         wrapper.ScoresPerRuleset[rulesetCode].Add(null); // no score

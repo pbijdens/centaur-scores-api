@@ -72,7 +72,7 @@ namespace CentaurScores.Services
 
         private static async Task<MatchModel> GetMatchModelFromID(CentaurScoresDbContext db, int id, int activeID)
         {
-            List<MatchEntity> entities = await db.Matches.AsNoTracking().Where(entity => entity.Id == id).ToListAsync();
+            List<MatchEntity> entities = await db.Matches.Include(m => m.Competition).AsNoTracking().Where(entity => entity.Id == id).ToListAsync();
             MatchModel? result = entities.Select(x => x.ToModel()).Select(x =>
             {
                 x.IsActiveMatch = x.Id == activeID;
