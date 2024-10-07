@@ -201,7 +201,7 @@ namespace CentaurScores.CompetitionLogic
             }
         }
 
-        private static void DiscardExtraScoresForParticipant(TsbCompetitionCalculationState state, TsbParticipantWrapperCompetition wrapper)
+        private void DiscardExtraScoresForParticipant(TsbCompetitionCalculationState state, TsbParticipantWrapperCompetition wrapper)
         {
             foreach ((string rulesetCode, List<ScoreInfoEntry?> scores) in wrapper.ScoresPerRuleset)
             {
