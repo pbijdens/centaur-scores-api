@@ -40,6 +40,7 @@ namespace CentaurScores.CompetitionLogic
         {
             this.logger = logger;
             this.configuration = configuration;
+            RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = Int32.MaxValue;
         }
 
         public async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)

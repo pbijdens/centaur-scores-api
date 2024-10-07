@@ -33,6 +33,7 @@ namespace CentaurScores.CompetitionLogic
         {
             this.logger = logger;
             this.configuration = configuration;
+            RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 4; // TODO: Read from the compeetition entity ruleset paramaters!
         }
 
         public async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)

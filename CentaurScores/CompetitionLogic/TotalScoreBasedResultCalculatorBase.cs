@@ -16,7 +16,7 @@ namespace CentaurScores.CompetitionLogic
         where Tcomparer : IComparer<TsbParticipantWrapperSingleMatch>, new()
         where TcompetitionComparar : IComparer<TsbParticipantWrapperCompetition>, new()
     {
-        private const int RequiredNumberOfMatchesSHouldBePartOfTheCompetitionEntity = 4;
+        protected int RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 4;
 
         public IParticipantNameComparer ParticipantNameComparer { get; protected set; } = new DefaultParticipantNameComparer();
 
@@ -205,7 +205,7 @@ namespace CentaurScores.CompetitionLogic
         {
             foreach ((string rulesetCode, List<ScoreInfoEntry?> scores) in wrapper.ScoresPerRuleset)
             {
-                foreach (var score in scores.OrderByDescending(x => x?.Score).Skip(RequiredNumberOfMatchesSHouldBePartOfTheCompetitionEntity))
+                foreach (var score in scores.OrderByDescending(x => x?.Score).Skip(RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant))
                 {
                     if (null != score) score.IsDiscarded = true;
                 }
