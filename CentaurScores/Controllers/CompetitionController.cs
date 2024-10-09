@@ -4,21 +4,19 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CentaurScores.Controllers
 {
+    /// <summary>
+    /// Endpoints for actions on competitions.
+    /// </summary>
+    /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("/competitions")]
-    public class CompetitionController
+    public class CompetitionController(ICompetitionRepository competitionRepository)
     {
-        private readonly ICompetitionRepository competitionRepository;
-
-        public CompetitionController(ICompetitionRepository competitionRepository)
-        {
-            this.competitionRepository = competitionRepository;
-        }
 
         /// <summary>
-        /// Returns all pre-defined participants lists for this organization.
+        /// Returns all competitions in the system.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>All competitions</returns>
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -28,9 +26,10 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns a single participants list.
+        /// Returns the competition for the specified id.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="competitionId">Competition ID</param>
+        /// <returns>A list of competitions</returns>
         [HttpGet("{competitionId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -40,8 +39,11 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
+        /// Update a competition with the specified values.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="competitionId">Competition ID</param>
+        /// <param name="model">A competition model containing the new metadata</param>
+        /// <returns>The updated model</returns>
         [HttpPut("{competitionId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -51,9 +53,12 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Update the metadata for the partitipant list.
+        /// Delete the competition, all matches and all results in the competition.
         /// </summary>
-        /// <returns></returns>
+        /// <remarks>
+        /// <para>The participant list is not deleted; It's shared.</para></remarks>
+        /// <param name="competitionId">Competition ID</param>
+        /// <returns>Zero if delete failed, a positive integer otherwise.</returns>
         [HttpDelete("{competitionId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -63,10 +68,10 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Create a new participant list.
+        /// Creates a new competition with the specified metadata.
         /// </summary>
-        /// <param name="model">The ID value in this model will be ignored.</param>
-        /// <returns></returns>
+        /// <param name="model">The metadata model, the ID in this model is ignored.</param>
+        /// <returns>The new competition with the new ID.</returns>
         [HttpPost()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -76,16 +81,17 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns a single participants list.
+        /// Calculates the results for a competition and returns them in a result model.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="competitionId">Competition ID</param>
+        /// <returns>Results for the competition.</returns>
         [HttpGet("{competitionId}/results")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<CompetitionResultModel>> GetCompetitionResults([FromRoute] int competitionId)
         {
             CompetitionResultModel? result = await competitionRepository.CalculateCompetitionResult(competitionId);
-            if (null == result) throw new ArgumentException(nameof(competitionId), "Bad competition ID");
+            if (null == result) throw new ArgumentException("Bad competition ID", nameof(competitionId));
             return result;
         }
     }

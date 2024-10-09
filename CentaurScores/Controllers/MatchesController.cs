@@ -7,24 +7,19 @@ using System.Text.RegularExpressions;
 
 namespace CentaurScores.Controllers
 {
+    /// <summary>
+    /// Methods for managing matches and match results. Part of these endpoints are intended for mobile use.
+    /// </summary>
+    /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("match")]
-    public class MatchesController
+    public class MatchesController(IMatchRepository matchRepository,
+        ICompetitionRepository competitionRepository)
     {
-        private readonly IMatchRepository matchRepository;
-        private readonly ICompetitionRepository competitionRepository;
-
-        public MatchesController(IMatchRepository matchRepository,
-            ICompetitionRepository competitionRepository)
-        {
-            this.matchRepository = matchRepository;
-            this.competitionRepository = competitionRepository;
-        }
-
         /// <summary>
-        /// Returns the configuuration for all matches in the system, alphabetically ordered by their code.
+        /// Returns the list of all matches in the system.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>All matches in the system</returns>
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -34,10 +29,10 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns the data for one specific match identified by id.
+        /// Gets all data for a single match.
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
+        /// <param name="id">The mmatch</param>
+        /// <returns>A single match model</returns>
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -47,11 +42,11 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Updates the metadata for a specific match.
+        /// Update all of a match's metadata, except participants.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="match"></param>
-        /// <returns></returns>
+        /// <param name="id">The match ID</param>
+        /// <param name="match">The match metadata to be applied.</param>
+        /// <returns>The updated model.</returns>
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -63,8 +58,8 @@ namespace CentaurScores.Controllers
         /// <summary>
         /// Deletes the specified match.
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
+        /// <param name="id">The match ID</param>
+        /// <returns>The number of matches deleted.</returns>
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -74,10 +69,10 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Creates a new metadata record for a match.
+        /// Creates a new match in the matches list.
         /// </summary>
-        /// <param name="match"></param>
-        /// <returns></returns>
+        /// <param name="match">The metadata for the new match, participants are ignored.</param>
+        /// <returns>A copy of the created model with the new ID.</returns>
         [HttpPost()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -87,10 +82,9 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns the data for one specific match.
+        /// Returns the model data for the single activated match.
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
+        /// <returns>A match model if there is an active match, or null otherwise.</returns>
         [HttpGet("active")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -100,11 +94,11 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Marks one match as the currently active match.
+        /// Marks one match as the currently active match, or clear that flag.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="isActive"></param>
-        /// <returns></returns>
+        /// <param name="id">The match ID</param>
+        /// <param name="isActive">A boolean value indicateing if the match is active or not.</param>
+        /// <returns>A copy of the updated model.</returns>
         [HttpPut("{id}/active/{isActive}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -117,21 +111,23 @@ namespace CentaurScores.Controllers
         /// <summary>
         /// Returns results for a single match.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="id">The match ID</param>
+        /// <returns>A match result object containign the results grouped three ways.</returns>
         [HttpGet("{id}/results")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<MatchResultModel>> GetMatchResults([FromRoute] int id)
         {
             MatchResultModel? result = await competitionRepository.CalculateSingleMatchResult(matchId: id);
-            if (null == result) throw new ArgumentException(nameof(id), "Bad match ID");
+            if (null == result) throw new ArgumentException("Bad match ID", nameof(id));
             return result;
         }
         
         /// <summary>
-        /// Clears the remotely changed flag, which indicates 
+        /// Clear the remotely changed flag for a match.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="id">The match ID</param>
+        /// <returns>A number</returns>
         [HttpDelete("{id}/remotelychanged")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

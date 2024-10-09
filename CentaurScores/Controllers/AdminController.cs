@@ -3,19 +3,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CentaurScores.Controllers
 {
+    /// <summary>
+    /// Controller for administrative functions.
+    /// </summary>
+    /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("admin")]
-    public class AdminController : ControllerBase
+    public class AdminController(IDatabaseServices databaseServices, IConfiguration configuration) : ControllerBase
     {
-        private readonly IDatabaseServices databaseServices;
-        private readonly IConfiguration configuration;
 
-        public AdminController(IDatabaseServices databaseServices, IConfiguration configuration)
-        {
-            this.databaseServices = databaseServices;
-            this.configuration = configuration;
-        }
-
+        /// <summary>
+        /// Request a backup of the MySQL database. Configure the secret in the "BackupSecret" in the AppSettings for the service.
+        /// </summary>
+        /// <param name="secret">A secret that should match the AppSettings.BackupSecret value.</param>
+        /// <returns>A backup file</returns>
         [HttpGet("backup/{secret}")]
         public async Task<FileStreamResult> GetMySQLBackup([FromRoute] string secret)
         {

@@ -1,5 +1,8 @@
 ﻿namespace CentaurScores.Model
 {
+    /// <summary>
+    /// Represents a competition.
+    /// </summary>
     public class CompetitionModel
     {
         /// <summary>
@@ -7,7 +10,7 @@
         /// </summary>
         public int? Id { get; set; } = null;
         /// <summary>
-        /// NAme of the competition.
+        /// Name of the competition.
         /// </summary>
         public string Name { get; set; } = string.Empty;
         /// <summary>

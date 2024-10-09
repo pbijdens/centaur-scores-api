@@ -9,22 +9,47 @@ namespace CentaurScores.Persistence
     // In the project folder:
     // - dotnet ef migrations add MigrationName
     // - dotnet dotnet ef migrations script 
-    public class CentaurScoresDbContext : DbContext
-    {
-        private readonly IConfiguration configuration;
 
+    /// <summary>
+    /// Database context for CentaurScores
+    /// </summary>
+    /// <remarks>Constructor</remarks>
+    public class CentaurScoresDbContext(IConfiguration configuration) : DbContext
+    {
+        /// <summary>
+        /// Accounts
+        /// </summary>
+        public DbSet<AccountEntity> Accounts { get; set; }
+        /// <summary>
+        /// All ACLs
+        /// </summary>
+        public DbSet<AclEntity> ACLs { get; set; }
+        /// <summary>
+        /// All matches
+        /// </summary>
         public DbSet<MatchEntity> Matches { get; set; }
+        /// <summary>
+        /// All participants per match.
+        /// </summary>
         public DbSet<ParticipantEntity> Participants { get; set; }
+        /// <summary>
+        /// Global settings.
+        /// </summary>
         public DbSet<CsSetting> Settings { get; set; }
+        /// <summary>
+        /// ALl participant lists.
+        /// </summary>
         public DbSet<ParticipantListEntity> ParticipantLists { get; set; }
+        /// <summary>
+        /// Members for each participant list.
+        /// </summary>
         public DbSet<ParticipantListEntryEntity> ParticipantListEntries { get; set; }
+        /// <summary>
+        /// All competitions.
+        /// </summary>
         public DbSet<CompetitionEntity> Competitions { get; set; }
 
-        public CentaurScoresDbContext(IConfiguration configuration)
-        {
-            this.configuration = configuration;
-        }
-
+        /// <inheritdoc/>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             string? connectionString = configuration.GetConnectionString("CentaurScoresDatabase");
@@ -35,6 +60,7 @@ namespace CentaurScores.Persistence
             optionsBuilder.UseMySQL(connectionString);
         }
 
+        /// <inheritdoc/>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -86,6 +112,25 @@ namespace CentaurScores.Persistence
                 entity.HasOne(e => e.ParticipantList).WithMany(p => p.Competitions).OnDelete(DeleteBehavior.NoAction).IsRequired(false);
                 // optional meny-to-one
                 entity.HasMany(e => e.Matches).WithOne(m => m.Competition).OnDelete(DeleteBehavior.Cascade).IsRequired(false);
+            });
+
+            modelBuilder.Entity<AccountEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Username).IsRequired().HasMaxLength(32);
+                entity.HasIndex(e => e.Username).IsUnique(true);
+                entity.Property(e => e.SaltedPasswordHash).IsRequired().HasMaxLength(72); // 64 plus a hash
+                entity.HasMany(e => e.ACLs).WithMany(a => a.Accounts);
+            });
+
+            modelBuilder.Entity<AclEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(256);
+                entity.HasIndex(e => e.Name).IsUnique(true);
+                entity.HasMany(e => e.Accounts).WithMany(a => a.ACLs);
             });
         }
     }

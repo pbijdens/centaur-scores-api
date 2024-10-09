@@ -3,11 +3,12 @@ using CentaurScores.Persistence;
 
 namespace CentaurScores.CompetitionLogic
 {
+    /// <summary>Special handler for the indoor lancaster rounds.</summary>
     public class LancasterRuleset : TotalScoreBasedResultCalculatorBase<TsbTieBreakingComparer, TsbParticipantWrapperCompetitionComparer>, IRuleService
     {
         private const string GroupName = "Indoor Lancaster";
-        private static readonly List<RulesetModel> RulsetDefinitions = new List<RulesetModel>
-            {
+        private static readonly List<RulesetModel> RulsetDefinitions =
+            [
                 new RulesetModel
                 {
                     GroupName = GroupName,
@@ -32,35 +33,33 @@ namespace CentaurScores.CompetitionLogic
                     RequiredTargets = RulesetConstants.TargetsLancasterFinale,
                     RequiredScoreValues = RulesetConstants.KeyboardsLancasterFinale
                 },
-            };
-        private readonly ILogger<LancasterRuleset> logger;
+            ];
         private readonly IConfiguration configuration;
 
-        public LancasterRuleset(ILogger<LancasterRuleset> logger, IConfiguration configuration)
+        /// <summary>Constructor</summary>
+        public LancasterRuleset(IConfiguration configuration)
         {
-            this.logger = logger;
             this.configuration = configuration;
             RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = Int32.MaxValue;
         }
 
+        /// <see cref="IRuleService"/>
         public async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)
         {
-            using (var db = new CentaurScoresDbContext(configuration))
-            {
-                var result = await CalculateCompetitionResultForDB(db, competitionId);
-                return result;
-            }
+            using CentaurScoresDbContext db = new(configuration);
+            var result = await CalculateCompetitionResultForDB(db, competitionId);
+            return result;
         }
 
+        /// <see cref="IRuleService"/>
         public async Task<MatchResultModel> CalculateSingleMatchResult(int matchId)
         {
-            using (var db = new CentaurScoresDbContext(configuration))
-            {
-                var result = await CalculateSingleMatchResultForDB(db, matchId);
-                return result;
-            }
+            using CentaurScoresDbContext db = new(configuration);
+            var result = await CalculateSingleMatchResultForDB(db, matchId);
+            return result;
         }
 
+        /// <see cref="IRuleService"/>
         public async Task<List<RulesetModel>> GetSupportedRulesets()
         {
             return await Task.FromResult(RulsetDefinitions);

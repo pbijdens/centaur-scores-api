@@ -1,25 +1,41 @@
 ﻿using CentaurScores.Model;
 using CentaurScores.Persistence;
 using CentaurScores.Services;
-using Microsoft.AspNetCore.DataProtection.XmlEncryption;
 using Microsoft.EntityFrameworkCore;
-using MySqlX.XDevAPI.Common;
 using Newtonsoft.Json;
-using Org.BouncyCastle.Crypto.Macs;
-using System.Collections.Generic;
-using System.Net.Mail;
-using System.Reflection.Metadata.Ecma335;
+
 
 namespace CentaurScores.CompetitionLogic
 {
-    public class TotalScoreBasedResultCalculatorBase<Tcomparer, TcompetitionComparar>
-        where Tcomparer : IComparer<TsbParticipantWrapperSingleMatch>, new()
-        where TcompetitionComparar : IComparer<TsbParticipantWrapperCompetition>, new()
+    /// <summary>
+    /// Base class for all more or less standard total-score-based competition types where the main difference is in the number of results per competition 
+    /// type that are kept.
+    /// </summary>
+    /// <remarks>
+    /// <para>Supports every kind of competition where the arrow scores of a single match are all added up for each participant, after which the 
+    /// participants are ranked by class on their total score.</para>
+    /// <para>Does, for example, not support final set-scoring where the result of a match is the total of set scores, and the arow scores
+    /// are onbly used to calculate the set-score.</para>
+    /// </remarks>
+    /// <typeparam name="TmatchComparer">A class that contains the logic to compare two TsbParticipantWrapperSingleMatch typed objects to each other to determine which scores best.</typeparam>
+    /// <typeparam name="TcompetitionComparer">A class that contains  the logic to compare two TsbParticipantWrapperCompetition typed objects to each other to determine which scores best.</typeparam>
+    public class TotalScoreBasedResultCalculatorBase<TmatchComparer, TcompetitionComparer>
+        where TmatchComparer : IComparer<TsbParticipantWrapperSingleMatch>, new()
+        where TcompetitionComparer : IComparer<TsbParticipantWrapperCompetition>, new()
     {
-        protected int RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 4;
+        /// <summary>
+        /// By default only the best 4 scores (per Ruleset Code) are used to calculate the total competito result.
+        /// </summary>
+        protected int RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 4; // TODO: LOAD FROM MATCH CONFIGURATION IN DB ENTYRY
 
-        public IParticipantNameComparer ParticipantNameComparer { get; protected set; } = new DefaultParticipantNameComparer();
-
+        /// <summary>
+        /// Implements all logic required to calculate a competition result for all matches that have been played sofar
+        /// as part of that competition. All matches are grouped by ruleset code, and for each ruleset code for each
+        /// partitipant the scores that achieved are added up. This gives us a sub-total per ruleset per participant.
+        /// 
+        /// Next, the sub-totals are added up, yielding a score for the full competition for each participant. These
+        /// scores are grouped as requested and returned as a competition result.
+        /// </summary>
         protected virtual async Task<CompetitionResultModel> CalculateCompetitionResultForDB(CentaurScoresDbContext db, int competitionId)
         {
             TsbCompetitionCalculationState state = new()
@@ -34,10 +50,242 @@ namespace CentaurScores.CompetitionLogic
                                                 .SingleAsync(c => c.Id == competitionId)
             };
 
-            // Consolidate participants, make sure they are all linked up properly
-            await MatchHelpers.ConsolidateParticipantsForCompetition(state);
+            // Calculate the "single match result" for each of the matches, then group them by ruleset code
+            await PopulateStateSingleMatchResults(db, state);
 
-            // Now, calculate a single match result for each of the matches and group them by ruleset
+            // Next, build a list of participants, grouping them by name
+            List<ParticipantData> allParticipants = [.. state.MatchResultsByRuleset.SelectMany(mrl => mrl.Value.SelectMany(mr => mr.Ungrouped.Select(p => p.ParticipantData))).Distinct().OrderBy(p => p.Normalizedname)];
+            // Create a wrapper, which essentially creates per participant a list of scores (or null) per match.
+            List<TsbParticipantWrapperCompetition> wrappers = [];
+            foreach (ParticipantData participantData in allParticipants)
+            {
+                // Taking into account that for undisclosed reasons people may want to switch bow-type
+                // halfway through the competition.
+                TsbParticipantWrapperCompetition wrapper = new()
+                {
+                    ParticipantData = participantData,
+                };
+
+                // Look up the score for this participant in each of the matches for this competition
+                // After this step is run for all participants, all participants have an array per
+                // ruleset with per match their score, or NULL if they did not participate in that
+                // match. 
+                PopulateScoresForEachRulesetAndEachMatchPerRuleset(state, participantData, wrapper, participantData.Group, participantData.Subgroup);
+
+                // If the participant has more than the required number of scores, discard all extra's
+                // Discarding is done by setting the discarded boolean in the scoreinfo.
+                DiscardExtraScoresForParticipant(wrapper);
+
+                // Calculate totals for the non-discarded scores, both per ruleset and ifor the
+                // competition
+                CalculateTotalScores(wrapper);
+
+                // The wrappers now contain all data needed to populate the result. We're going to filter
+                // and sort these a couple of times to create our competition results grouped in various
+                // ways.
+                wrappers.Add(wrapper);
+            }
+
+            // Create the result object and populate the basic data
+            CompetitionResultModel result = new()
+            {
+                Name = state.CompetitionEntity.Name,
+                RulesetGroupName = state.CompetitionEntity.RulesetGroupName ?? string.Empty,
+                RulesetParametersJSON = state.CompetitionEntity.RulesetParametersJSON ?? string.Empty,
+                Groups = state.MatchResultsByRuleset.Values.SelectMany(x => x.SelectMany(y => y.Groups)).Distinct().ToList(),
+                Subgroups = state.MatchResultsByRuleset.Values.SelectMany(x => x.SelectMany(y => y.Subgroups)).Distinct().ToList(),
+            };
+           
+            PopulateResultHeadersPerRulesetCode(state, result);
+
+            // Add ungrouped results and sort them
+            result.Ungrouped = await SortWrappersUsingCompetitionRules(wrappers);
+
+            IEnumerable<string> groupsWithResults = wrappers.Select(x => x.ParticipantData.Group).Distinct();
+            foreach (string groupInfo in groupsWithResults)            
+            {
+                // Add results for this group and sort them
+                List<TsbParticipantWrapperCompetition> wrappersForThisGroup = wrappers.Where(x => x.ParticipantData.Group == groupInfo).ToList();
+                result.ByClass[groupInfo] = await SortWrappersUsingCompetitionRules(wrappersForThisGroup);
+
+                result.BySubclass[groupInfo] = [];
+                IEnumerable<string> subgroupsWithResults = wrappers.Where(x => x.ParticipantData.Group == groupInfo).Select(x => x.ParticipantData.Subgroup).Distinct();
+                foreach (string subgroupInfo in subgroupsWithResults)
+                {
+                    // Add results for this group and subgroup and sort them
+                    List<TsbParticipantWrapperCompetition> wrappersForThisSubgroup = wrappers.Where(x => x.ParticipantData.Group == groupInfo && x.ParticipantData.Subgroup == subgroupInfo).ToList();
+                    result.BySubclass[groupInfo][subgroupInfo] = await SortWrappersUsingCompetitionRules(wrappersForThisSubgroup);
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Calculates a match result based on the sum of all scored arrows. Breaks ties by looking at the counts of individual arrow scores, 
+        /// starting at the highest possible score and working our way down. If after this the tie remains, both archers will be on the exact
+        /// same spot.
+        /// </summary>
+        protected virtual async Task<MatchResultModel> CalculateSingleMatchResultForDB(CentaurScoresDbContext db, int id)
+        {
+            MatchEntity? match = await db.Matches.AsNoTracking().Include(x => x.Participants).Include(x => x.Competition).FirstOrDefaultAsync(x => x.Id == id);
+            if (null == match)
+            {
+                throw new ArgumentException("Not a valid match", nameof(id));
+            }
+            MatchModel matchModel = match.ToModel(); // convert to a model so we can use a utility function to 
+
+            // Populate the list of match participants and add the data that's needed to calculate a result.
+            List<TsbParticipantWrapperSingleMatch> participants = PopulateMatchParticipantsList(match, matchModel);
+
+            // Only process groups and subgroups that are actually used
+            List<GroupInfo> allClasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.GroupsJSON) ?? [];
+            List<GroupInfo> allSubclasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.SubgroupsJSON) ?? [];
+            List<GroupInfo> classes = allClasses.Where(gi => participants.Any(p => p.ClassCode == gi.Code)).ToList();
+            List<GroupInfo> subclasses = allSubclasses.Where(gi => participants.Any(p => p.SubclassCode == gi.Code)).ToList();
+            // Create a list of all single arrow scores  that were actually achieved in the match (may be empty, may skip some values)
+            List<int> allArrowValues = [.. participants.SelectMany(x => x.Ends.SelectMany(y => y.Arrows.Select(a => a ?? 0))).Distinct().OrderByDescending(x => x)];
+            // Pre-populate the tiebreaker dictionaries for all participants
+            PrePopulateTiebreakerDictionariesForAllParticipants(participants, allArrowValues);
+
+            MatchResultModel result = new()
+            {
+                Name = match.MatchName,
+                Code = match.MatchCode,
+                Ruleset = match.RulesetCode ?? string.Empty,
+                Groups = allClasses,
+                Subgroups = allSubclasses,
+                Ungrouped = await SortSingleMatchResult(db, allArrowValues, participants)
+            };
+            foreach (GroupInfo classGroupInfo in classes)
+            {
+                var l1participants = participants.Where(x => x.ClassCode == classGroupInfo.Code).ToList();
+                if (l1participants.Count != 0)
+                {
+                    result.ByClass[classGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l1participants);
+                    result.BySubclass[classGroupInfo.Code] = [];
+                    foreach (GroupInfo subclassGroupInfo in subclasses)
+                    {
+                        var l2participants = participants.Where(x => x.ClassCode == classGroupInfo.Code && x.SubclassCode == subclassGroupInfo.Code).ToList();
+                        if (l2participants.Count != 0)
+                        {
+                            result.BySubclass[classGroupInfo.Code][subclassGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l2participants);
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// For a single category in a match, sort all the results.
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="allArrowValues"></param>
+        /// <param name="participants"></param>
+        /// <returns></returns>
+        protected virtual async Task<List<MatchScoreForParticipant>> SortSingleMatchResult(CentaurScoresDbContext db, List<int> allArrowValues, List<TsbParticipantWrapperSingleMatch> participants)
+        {
+            TmatchComparer tiebreakingComparer = new();
+            List<MatchScoreForParticipant> result = [];
+
+            participants.ForEach(p =>
+            {
+                // reset tiebreakers and other temporary data for each list created
+                p.TiebreakerArrow = int.MaxValue;
+            });
+
+            // The comparer will update p.TiebreakerArrow to be the lowest value on which it needed to compare arrow counts for two records
+            // with identical scores, it should be initialized to Int32.MAxValue before each run.
+            List<TsbParticipantWrapperSingleMatch> sorted = [.. participants.OrderByDescending(x => x, tiebreakingComparer)];
+
+            for (int index = 0; index < sorted.Count; index++)
+            {
+                var pi = sorted[index];
+                MatchScoreForParticipant entry = new()
+                {
+                    ParticipantInfo = $"{pi.Participant.Name}",
+                    ParticipantData = pi.ParticipantData,
+                    // If consecutive records have the exact same score and tiebreakers won't work, 
+                    Position = index + 1,
+                    Score = pi.Score,
+                    ScoreInfo = [ new ScoreInfoEntry {
+                        IsDiscarded = false,
+                        Score = pi.Score,
+                        Info = string.Empty
+                    }],
+                };
+
+                if (index > 0 && tiebreakingComparer.Compare(sorted[index - 1], sorted[index]) == 0)
+                {
+                    // if two entries have identical scores and no tiebreaker exists, put them in the same place
+                    // in the results and mark them wioth a *
+                    result[index - 1].ParticipantInfo = result[index - 1].ParticipantInfo.TrimEnd('*') + "*";
+                    entry.Position = result[index - 1].Position;
+                    entry.ParticipantInfo += "*";
+                }
+
+                if (pi.TiebreakerArrow != int.MaxValue)
+                {
+                    // If a tiebreak check was needed, add the information used in that check here
+                    foreach (int arrow in allArrowValues)
+                    {
+                        entry.ScoreInfo[0].Info += $"{pi.Tiebreakers[arrow]}x{arrow} ";
+                        if (arrow == pi.TiebreakerArrow) break;
+                    }
+                    entry.ScoreInfo[0].Info = entry.ScoreInfo[0].Info.TrimEnd();
+                }
+
+                result.Add(entry);
+            }
+
+            return await Task.FromResult(result);
+        }
+
+        private static void PrePopulateTiebreakerDictionariesForAllParticipants(List<TsbParticipantWrapperSingleMatch> participants, List<int> allArrowValues)
+        {
+            foreach (TsbParticipantWrapperSingleMatch wrapper in participants)
+            {
+                wrapper.Score = wrapper.Ends.Sum(x => x.Score ?? 0); // sum of all ends
+                foreach (int arrow in allArrowValues) wrapper.Tiebreakers[arrow] = 0;
+                foreach (var end in wrapper.Ends)
+                {
+                    foreach (var arrow in end.Arrows)
+                    {
+                        wrapper.Tiebreakers[arrow ?? 0] += 1;
+                    }
+                }
+            }
+        }
+
+        private static List<TsbParticipantWrapperSingleMatch> PopulateMatchParticipantsList(MatchEntity? match, MatchModel matchModel)
+        {
+            List<TsbParticipantWrapperSingleMatch> participants = [];
+
+            if (null != match)
+            {
+                // Adds the (fixed) participant models to the participants array
+                participants.AddRange(match.Participants.Select(x =>
+                {
+                    TsbParticipantWrapperSingleMatch pp = new()
+                    {
+                        Participant = x.ToModel(),
+                        ParticipantData = x.ToModel().ToData(),
+                        Ends = [],
+                        ClassCode = x.Group,
+                        SubclassCode = x.Subgroup
+                    };
+                    MatchRepository.AutoFixParticipantModel(matchModel, pp.Participant); // ensures scorecards match the match configuration
+                    pp.Ends = pp.Participant.Ends;
+                    return pp;
+                }));
+            }
+            return participants;
+        }
+
+        private async Task PopulateStateSingleMatchResults(CentaurScoresDbContext db, TsbCompetitionCalculationState state)
+        {
             foreach (MatchEntity matchEntity in state.CompetitionEntity.Matches)
             {
                 if (null != matchEntity.Id)
@@ -47,91 +295,22 @@ namespace CentaurScores.CompetitionLogic
                     state.MatchResultsByRuleset[matchEntity.RulesetCode ?? string.Empty].Add(matchResult);
                 }
             }
-
-            // Next, build a list of participants, grouping them by name
-            List<string> allParticipants = state.MatchResultsByRuleset.SelectMany(mrl => mrl.Value.SelectMany(mr => mr.Ungrouped.Select(p => $"{p.ParticipantInfo}".TrimEnd('*')))).OrderBy(x => x).Distinct(ParticipantNameComparer).ToList();
-
-            // Create a wrapper, which essentially creates per participant a list of scores (or null) per match.
-            List<TsbParticipantWrapperCompetition> wrappers = [];
-            foreach (string participantName in allParticipants)
-            {
-                foreach ((string group, string subgroup) in GroupsForParticipant(db, state, participantName))
-                {
-                    // Taking into account that for undisclosed reasons people may want to switch bow-type
-                    // halfway through the competition.
-                    TsbParticipantWrapperCompetition wrapper = new()
-                    {
-                        ParticipantName = participantName,
-                        Group = group,
-                        Subgroup = subgroup,
-                    };
-
-                    // Look up the score for this participant in each of the matches for this competition
-                    // After this step is run for all participants, all participants have an array per
-                    // ruleset with per match their score, or NULL if they did not participate in that
-                    // match. 
-                    PopulateScoresForEachRulesetAndEachMatchPerRuleset(state, participantName, wrapper, group, subgroup);
-
-                    // If the participant has more than the required number of scores, discard all extra's
-                    // Discarding is done by setting the discarded boolean in the scoreinfo.
-                    DiscardExtraScoresForParticipant(state, wrapper);
-
-                    // Calculate totals for the non-discarded scores, both per ruleset and ifor the
-                    // competition
-                    CalculateTotalScores(state, wrapper);
-
-                    // The wrappers now contain all data needed to populate the result. We're going to filter
-                    // and sort these a couple of times to create our competition results grouped in various
-                    // ways.
-                    wrappers.Add(wrapper);
-                }
-            }
-
-            // sort the wrappers
-            // create resultset
-            CompetitionResultModel result = new CompetitionResultModel
-            {
-                Name = state.CompetitionEntity.Name,
-                RulesetGroupName = state.CompetitionEntity.RulesetGroupName ?? string.Empty,
-                RulesetParametersJSON = state.CompetitionEntity.RulesetParametersJSON ?? string.Empty,
-                Groups = state.MatchResultsByRuleset.Values.SelectMany(x => x.SelectMany(y => y.Groups)).Distinct().ToList(),
-                Subgroups = state.MatchResultsByRuleset.Values.SelectMany(x => x.SelectMany(y => y.Subgroups)).Distinct().ToList(),
-            };
-
-            PopulateResultHeadersPerRulesetCode(state, result);
-
-            result.Ungrouped = await SortCompetitionResult(db, wrappers);
-            foreach (string classGroupInfo in wrappers.Select(x => x.Group).Distinct())
-            {
-                result.ByClass[classGroupInfo] = await SortCompetitionResult(db, wrappers.Where(x => x.Group == classGroupInfo).ToList());
-                result.BySubclass[classGroupInfo] = new Dictionary<string, List<CompetitionResultEntry>>();
-                foreach (string subclassGroupInfo in wrappers.Where(x => x.Group == classGroupInfo).Select(x => x.Subgroup).Distinct())
-                {
-                    result.BySubclass[classGroupInfo][subclassGroupInfo] = await SortCompetitionResult(db, wrappers.Where(x => x.Group == classGroupInfo && x.Subgroup == subclassGroupInfo).ToList());
-                }
-            }
-
-            return result;
         }
 
-        private List<(string group, string subgroup)> GroupsForParticipant(CentaurScoresDbContext db, TsbCompetitionCalculationState state, string name)
+        private static async Task<List<CompetitionScoreForParticipantModel>> SortWrappersUsingCompetitionRules(List<TsbParticipantWrapperCompetition> wrappers)
         {
-            return state.CompetitionEntity.Matches.SelectMany(m => m.Participants.Where(p => p.Name == name)).ToList().Select(x => (group: x.Group, subgroup: x.Subgroup)).Distinct().ToList();
-        }
-
-        private async Task<List<CompetitionResultEntry>> SortCompetitionResult(CentaurScoresDbContext db, List<TsbParticipantWrapperCompetition> wrappers)
-        {
-            var comparer = new TcompetitionComparar();
+            var comparer = new TcompetitionComparer();
             var sorted = wrappers.OrderByDescending(x => x, comparer).ToList();
 
-            List<CompetitionResultEntry> result = [];
+            List<CompetitionScoreForParticipantModel> result = [];
 
             for (int index = 0; index < sorted.Count; index++)
             {
                 var pi = sorted[index];
-                CompetitionResultEntry entry = new()
+                CompetitionScoreForParticipantModel entry = new()
                 {
-                    ParticipantInfo = $"{pi.ParticipantName}",
+                    ParticipantInfo = $"{pi.ParticipantData.Name}",
+                    ParticipantData = pi.ParticipantData,
                     // If consecutive records have the exact same score and tiebreakers won't work, 
                     Position = index + 1,
                     TotalScore = pi.TotalScore,
@@ -174,7 +353,7 @@ namespace CentaurScores.CompetitionLogic
             }
         }
 
-        private void CalculateTotalScores(TsbCompetitionCalculationState state, TsbParticipantWrapperCompetition wrapper)
+        private static void CalculateTotalScores(TsbParticipantWrapperCompetition wrapper)
         {
             foreach ((string ruleset, List<ScoreInfoEntry?> scores) in wrapper.ScoresPerRuleset)
             {
@@ -183,25 +362,32 @@ namespace CentaurScores.CompetitionLogic
             wrapper.TotalScore = wrapper.TotalScoresPerRuleset.Values.Sum();
         }
 
-        private void PopulateScoresForEachRulesetAndEachMatchPerRuleset(TsbCompetitionCalculationState state, string participantName, TsbParticipantWrapperCompetition wrapper, string group, string subGroup)
+        private static void PopulateScoresForEachRulesetAndEachMatchPerRuleset(TsbCompetitionCalculationState state, ParticipantData participantData, TsbParticipantWrapperCompetition wrapper, string group, string subGroup)
         {
             foreach ((string rulesetCode, List<MatchResultModel> matchResults) in state.MatchResultsByRuleset)
             {
                 foreach (MatchResultModel matchResult in matchResults)
                 {
-                    if (!wrapper.ScoresPerRuleset.ContainsKey(rulesetCode)) wrapper.ScoresPerRuleset[rulesetCode] = [];
+#pragma warning disable CA1854 // Prefer the 'IDictionary.TryGetValue(TKey, out TValue)' method
+                    if (!wrapper.ScoresPerRuleset.ContainsKey(rulesetCode))
+                    {
+                        wrapper.ScoresPerRuleset[rulesetCode] = [];
+                    }
+
                     if (matchResult.BySubclass.ContainsKey(group) && matchResult.BySubclass[group].ContainsKey(subGroup))
                     {
-                        wrapper.ScoresPerRuleset[rulesetCode].Add(matchResult.BySubclass[group][subGroup].FirstOrDefault(p => ParticipantNameComparer.Equals($"{p.ParticipantInfo}".TrimEnd('*'), participantName))?.ScoreInfo?.FirstOrDefault());
-                    } else
+                        wrapper.ScoresPerRuleset[rulesetCode].Add(matchResult.BySubclass[group][subGroup].FirstOrDefault(p => p.ParticipantData.Equals(participantData))?.ScoreInfo?.FirstOrDefault());
+                    }
+                    else
                     {
                         wrapper.ScoresPerRuleset[rulesetCode].Add(null); // no score
                     }
+#pragma warning restore CA1854 // Prefer the 'IDictionary.TryGetValue(TKey, out TValue)' method
                 }
             }
         }
 
-        private void DiscardExtraScoresForParticipant(TsbCompetitionCalculationState state, TsbParticipantWrapperCompetition wrapper)
+        private void DiscardExtraScoresForParticipant(TsbParticipantWrapperCompetition wrapper)
         {
             foreach ((string rulesetCode, List<ScoreInfoEntry?> scores) in wrapper.ScoresPerRuleset)
             {
@@ -210,143 +396,6 @@ namespace CentaurScores.CompetitionLogic
                     if (null != score) score.IsDiscarded = true;
                 }
             }
-        }
-
-        /// <summary>
-        /// Calculates a matych result based on the sum of all scored arrows. Breaks ties by looking at the counts of individual arrow scores, 
-        /// starting at the highest possible score and working our way down. If after this the tie remains, both archers will be on the exact
-        /// same spot.
-        /// </summary>
-        /// <param name="db"></param>
-        /// <param name="matchId"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentException"></exception>
-        protected virtual async Task<MatchResultModel> CalculateSingleMatchResultForDB(CentaurScoresDbContext db, int matchId)
-        {
-            MatchEntity? match = await db.Matches.AsNoTracking().Include(x => x.Participants).Include(x => x.Competition).FirstOrDefaultAsync(x => x.Id == matchId);
-            if (null == match)
-            {
-                throw new ArgumentException(nameof(matchId), "Not an identifier");
-            }
-            MatchModel matchModel = match.ToModel(); // convert to a model so we can use a utility function to 
-            List<GroupInfo> allClasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.GroupsJSON) ?? [];
-            List<GroupInfo> allSubclasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.SubgroupsJSON) ?? [];
-
-            List<TsbParticipantWrapperSingleMatch> participants = [];
-
-            // Adds the (fixed) participant models to the participants array
-            participants.AddRange(match.Participants.Select(x =>
-            {
-                TsbParticipantWrapperSingleMatch pp = new()
-                {
-                    Participant = x.ToModel(),
-                    Ends = [],
-                    ClassCode = x.Group,
-                    SubclassCode = x.Subgroup
-                };
-                MatchRepository.AutoFixParticipantModel(matchModel, pp.Participant); // ensures scorecards match the match configuration
-                pp.Ends = pp.Participant.Ends;
-                return pp;
-            }));
-
-            // Only process classes and subclasses that are actually used
-            List<GroupInfo> classes = allClasses.Where(gi => participants.Any(p => p.ClassCode == gi.Code)).ToList();
-            List<GroupInfo> subclasses = allSubclasses.Where(gi => participants.Any(p => p.SubclassCode == gi.Code)).ToList();
-
-            // Create a list of all single arrow scores  that were actually achieved in the match (may be empty)
-            List<int> allArrowValues = participants.SelectMany(x => x.Ends.SelectMany(y => y.Arrows.Select(a => a ?? 0))).Distinct().OrderByDescending(x => x).ToList();
-
-            // Create an array of wrapper-objects that we use for keeping track of temp data during the result calculation
-            foreach (TsbParticipantWrapperSingleMatch wrapper in participants)
-            {
-                wrapper.Score = wrapper.Ends.Sum(x => x.Score ?? 0); // sum of all ends
-                foreach (int arrow in allArrowValues) wrapper.Tiebreakers[arrow] = 0;
-                foreach (var end in wrapper.Ends)
-                {
-                    foreach (var arrow in end.Arrows)
-                    {
-                        wrapper.Tiebreakers[arrow ?? 0] += 1;
-                    }
-                }
-            }
-
-            MatchResultModel result = new();
-
-            result.Name = match.MatchName;
-            result.Code = match.MatchCode;
-            result.Ruleset = match.RulesetCode ?? string.Empty;
-            result.Groups = allClasses;
-            result.Subgroups = allSubclasses;
-
-            result.Ungrouped = await SortSingleMatchResult(db, allArrowValues, participants);
-            foreach (GroupInfo classGroupInfo in classes)
-            {
-                result.ByClass[classGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, participants.Where(x => x.ClassCode == classGroupInfo.Code).ToList());
-                result.BySubclass[classGroupInfo.Code] = new Dictionary<string, List<MatchResultEntry>>();
-                foreach (GroupInfo subclassGroupInfo in subclasses)
-                {
-                    result.BySubclass[classGroupInfo.Code][subclassGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, participants.Where(x => x.ClassCode == classGroupInfo.Code && x.SubclassCode == subclassGroupInfo.Code).ToList());
-                }
-            }
-
-            return result;
-        }
-
-        protected virtual async Task<List<MatchResultEntry>> SortSingleMatchResult(CentaurScoresDbContext db, List<int> allArrowValues, List<TsbParticipantWrapperSingleMatch> participants)
-        {
-            Tcomparer tiebreakingComparer = new();
-            List<MatchResultEntry> result = new();
-
-            participants.ForEach(p =>
-            {
-                // reset tiebreakers and other temporary data for each list created
-                p.TiebreakerArrow = int.MaxValue;
-            });
-
-            // The comparer will update p.TiebreakerArrow to be the lowest value on which it needed to compare arrow counts for two records
-            // with identical scores, it should be initialized to Int32.MAxValue before each run.
-            List<TsbParticipantWrapperSingleMatch> sorted = participants.OrderByDescending(x => x, tiebreakingComparer).ToList();
-
-            for (int index = 0; index < sorted.Count; index++)
-            {
-                var pi = sorted[index];
-                MatchResultEntry entry = new()
-                {
-                    ParticipantInfo = $"{pi.Participant.Name}",
-                    // If consecutive records have the exact same score and tiebreakers won't work, 
-                    Position = index + 1,
-                    Score = pi.Score,
-                    ScoreInfo = [ new ScoreInfoEntry {
-                        IsDiscarded = false,
-                        Score = pi.Score,
-                        Info = string.Empty
-                    }],
-                };
-
-                if (index > 0 && tiebreakingComparer.Compare(sorted[index - 1], sorted[index]) == 0)
-                {
-                    // if two entries have identical scores and no tiebreaker exists, put them in the same place
-                    // in the results and mark them wioth a *
-                    result[index - 1].ParticipantInfo = result[index - 1].ParticipantInfo.TrimEnd('*') + "*";
-                    entry.Position = result[index - 1].Position;
-                    entry.ParticipantInfo += "*";
-                }
-
-                if (pi.TiebreakerArrow != int.MaxValue)
-                {
-                    // If a tiebreak check was needed, add the information used in that check here
-                    foreach (int arrow in allArrowValues)
-                    {
-                        entry.ScoreInfo[0].Info += $"{pi.Tiebreakers[arrow]}x{arrow} ";
-                        if (arrow == pi.TiebreakerArrow) break;
-                    }
-                    entry.ScoreInfo[0].Info = entry.ScoreInfo[0].Info.TrimEnd();
-                }
-
-                result.Add(entry);
-            }
-
-            return await Task.FromResult(result);
         }
     }
 }

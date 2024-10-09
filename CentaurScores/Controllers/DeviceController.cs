@@ -4,21 +4,19 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CentaurScores.Controllers
 {
+    /// <summary>
+    /// Methods specifically for the mobile devices.
+    /// </summary>
+    /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("/devices")]
-    public class DeviceController
+    public class DeviceController(IMatchRepository matchRepository)
     {
-        private readonly IMatchRepository matchRepository;
-
-        public DeviceController(IMatchRepository matchRepository) 
-        {
-            this.matchRepository = matchRepository;
-        }
-
         /// <summary>
-        /// Returns all pre-defined participants lists for this organization.
+        /// Returns true if a model change was pushed remotely that impacts this device.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="deviceId">The device ID</param>
+        /// <returns>true if a model sync is strongly suggested, false otherwise.</returns>
         [HttpGet("{deviceId}/sync")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -28,9 +26,10 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns all pre-defined participants lists for this organization.
+        /// Use to clear the flag after the device synchronization was done.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="deviceId">The Device ID</param>
+        /// <returns>Irrelevant</returns>
         [HttpDelete("{deviceId}/sync")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

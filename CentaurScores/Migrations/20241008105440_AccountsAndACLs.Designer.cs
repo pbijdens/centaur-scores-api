@@ -3,6 +3,7 @@ using System;
 using CentaurScores.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CentaurScores.Migrations
 {
     [DbContext(typeof(CentaurScoresDbContext))]
-    partial class CentaurScoresDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241008105440_AccountsAndACLs")]
+    partial class AccountsAndACLs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -4,21 +4,18 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CentaurScores.Controllers
 {
+    /// <summary>
+    /// Endpoints for maintaining the participants of a single match.
+    /// </summary>
+    /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("match/{id}/participants")]
-    public class ParticipantsController
+    public class MatchParticipantsController(IMatchRepository matchRepository)
     {
-        private readonly IMatchRepository matchRepository;
-
-        public ParticipantsController(IMatchRepository matchRepository)
-        {
-            this.matchRepository = matchRepository;
-        }
-
         /// <summary>
-        /// Returns a complete list of all participants for a match, ordered by name.
+        /// Returns a complete list of all participants for a single match, ordered by name.
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="id">The match ID.</param>
         /// <returns></returns>
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -29,11 +26,11 @@ namespace CentaurScores.Controllers
         }
         
         /// <summary>
-        /// Returns the list of participant entries that should be used on a device that's updating scores. Will return empty participant sctructures for currently not populated lijnen.
+        /// Returns the list of participant entries that should be used on a device that's updating scores. Will return empty participant sctructures for currently not populated 'lijnen'.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="deviceID"></param>
-        /// <returns></returns>
+        /// <param name="id">The match ID.</param>
+        /// <param name="deviceID">Unique ID of the device that's requesting the list.</param>
+        /// <returns>A list of participants with exactly as many positions in it as there are 'lijnen' for the match.</returns>
         [HttpGet("{deviceID}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -43,12 +40,13 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Updates the participants for the specified match, updating their scores. This will fail if the specified match is not the currently active match, because only that may be updated.
+        /// Updates the participants for the specified match, also updating their scores. This will fail if the specified match is not the currently active match. 
+        /// Will also fail if the device ID does not match the participant's device ID.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="deviceID"></param>
-        /// <param name="participants"></param>
-        /// <returns></returns>
+        /// <param name="id">The match ID.</param>
+        /// <param name="deviceID">The devcice ID</param>
+        /// <param name="participants">The list of participants, with a complete array of end-scores.</param>
+        /// <returns>A number</returns>
         [HttpPut("{deviceID}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -58,13 +56,14 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Transfer a participant from one device onto another.
+        /// Transfer a participant from one device onto another with all metadata and all scores. Does not require tha target 'lijn' to be available. 
+        /// Will mark both devices as having received a remote model update.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="participantId"></param>
-        /// <param name="targetDeviceID"></param>
-        /// <param name="lijn"></param>
-        /// <returns></returns>
+        /// <param name="id">The match ID.</param>
+        /// <param name="participantId">The record ID of the partitcipant.</param>
+        /// <param name="targetDeviceID">The device ID for the target.</param>
+        /// <param name="lijn">The 'lijn' at the target that will be occupied by this participant.</param>
+        /// <returns>A boolean value indicating if the transfer succeeded.</returns>
         [HttpPost("{participantId}/transfer/{targetDeviceID}/{lijn}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -74,8 +73,10 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns a single participant.
+        /// Returns a single participant by ID with all metadata ans scoring data for the match..
         /// </summary>
+        /// <param name="id">The match ID.</param>
+        /// <param name="participantId">The participant ID.</param>
         /// <returns></returns>
         [HttpGet("{participantId}/scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -86,9 +87,12 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Updates a single participant (removing it from all devices)
+        /// Updates a single participant for a match. Will update metadata and scores. If the participant is linked to a device, the device will be flagged for needing synchronization.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="id">The match ID.</param>
+        /// <param name="participantId">The participant ID.</param>
+        /// <param name="participant">The new participant model.</param>
+        /// <returns>The updated model.</returns>
         [HttpPut("{participantId}/scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -100,7 +104,9 @@ namespace CentaurScores.Controllers
         /// <summary>
         /// Deletes a single participant for a match
         /// </summary>
-        /// <returns></returns>
+        /// <param name="id">The match ID.</param>
+        /// <param name="participantId">The participant ID.</param>
+        /// <returns>The number of records that were deleted.</returns>
         [HttpDelete("{participantId}/scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -110,9 +116,11 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Creates a new participant
+        /// Creates a new participant in a match.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="id">The match ID.</param>
+        /// <param name="participant">Model data for the participant that is to be created.</param>
+        /// <returns>The created model object with its ID.</returns>
         [HttpPost("scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -4,18 +4,54 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CentaurScores.Persistence
 {
+    /// <summary>
+    /// DB match participant
+    /// </summary>
     public class ParticipantEntity
     {
+        /// <summary>
+        /// DB ID
+        /// </summary>
         public int? Id { get; set; } = null;
+        /// <summary>
+        /// Match for this record.
+        /// </summary>
         public required MatchEntity Match { get; set; }
+        /// <summary>
+        /// Devicde ID for the device this record is on.
+        /// </summary>
         public string DeviceID { get; set; } = string.Empty;
+        /// <summary>
+        /// Lijn on that device.
+        /// </summary>
         public string Lijn { get; set; } = string.Empty;
+        /// <summary>
+        /// Archer name.
+        /// </summary>
         public string Name { get; set; } = string.Empty;
+        /// <summary>
+        /// Archer group code.
+        /// </summary>
         public string Group { get; set; } = string.Empty;
+        /// <summary>
+        /// Archer subgroup code.
+        /// </summary>
         public string Subgroup { get; set; } = string.Empty;
+        /// <summary>
+        /// Target code.
+        /// </summary>
         public string Target { get; set; } = string.Empty;
+        /// <summary>
+        /// Calculated score.
+        /// </summary>
         public int Score { get; set; }
+        /// <summary>
+        /// All ends as JSON.
+        /// </summary>
         public string EndsJSON { get; set; } = string.Empty;
+        /// <summary>
+        /// ID in the participant list for the competition for this archer. Same ID = same archer.
+        /// </summary>
         public int? ParticipantListEntryId { get; set; } = null;
 
         internal ParticipantModel ToModel()
@@ -23,7 +59,7 @@ namespace CentaurScores.Persistence
             return new()
             {
                 Id = Id ?? -1,
-                Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? new(),
+                Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? [],
                 Score = Score,
                 Group = Group,
                 Lijn = Lijn,
@@ -40,7 +76,7 @@ namespace CentaurScores.Persistence
             return new()
             {
                 Id = Id ?? -1,
-                Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? new(),
+                Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? [],
                 Score = Score,
                 Group = Group,
                 Lijn = Lijn,
