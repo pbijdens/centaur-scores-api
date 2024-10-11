@@ -38,34 +38,42 @@ namespace CentaurScores.Persistence
         /// JSON encoded dictionary of 'target code' x array[score button]
         /// </summary>
         public string ScoreValuesJson { get; set; } = "[]";
+
         /// <summary>
         /// List of group info structures indicating allowed groups.
         /// </summary>
         public string GroupsJSON { get; set; } = "[]";
+
         /// <summary>
         /// List of group info structures indicating allowed subgroups.
         /// </summary>
         public string SubgroupsJSON { get; set; } = "[]";
+
         /// <summary>
         /// List of group info structures indicating targets.
         /// </summary>
         public string TargetsJSON { get; set; } = "[]";
+
         /// <summary>
         /// Lijnen as single-character array (json).
         /// </summary>
         public string LijnenJSON { get; set; } = "[]";
+
         /// <summary>
         /// All articipants for the match.
         /// </summary>
         public List<ParticipantEntity> Participants { get; set; } = [];
+
         /// <summary>
         /// Competition for the match.
         /// </summary>
         public CompetitionEntity? Competition { get; set; } = null;
+
         /// <summary>
         /// Code for the ruleset.
         /// </summary>
         public string? RulesetCode { get; set; } = null;
+
         /// <summary>
         /// Not used.
         /// </summary>

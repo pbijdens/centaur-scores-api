@@ -13,6 +13,13 @@ namespace CentaurScores.Persistence
         public int? Id { get; set; } = null;
 
         /// <summary>
+        /// If set to true, this member is no longer active and should be considered deactivated.
+        /// Their competition scores and other data will not be removed, but they will not be
+        /// shown anymore in member lists and member selection panels, nor in personal best lists.
+        /// </summary>
+        public bool IsDeactivated { get; set; } = false;
+
+        /// <summary>
         /// List thsi entry belongs to
         /// </summary>
         public required ParticipantListEntity List { get; set; }
@@ -26,6 +33,9 @@ namespace CentaurScores.Persistence
         /// <summary>A default sub-group for the participant. Not a code but a label.</summary>
         public string Subgroup { get; set; } = string.Empty;
 
+        /// <summary>Personal best records for this member.</summary>
+        public List<PersonalBestsListEntryEntity> PersonalBests { get; set; } = [];
+
         internal ParticipantListMemberModel ToModel()
         {
             ParticipantListMemberModel result = new()
@@ -33,7 +43,8 @@ namespace CentaurScores.Persistence
                 Id = Id,
                 Name = Name,
                 Group = Group,
-                Subgroup = Subgroup
+                Subgroup = Subgroup,
+                IsDeactivated = IsDeactivated,
             };
             return result;
         }
@@ -43,6 +54,7 @@ namespace CentaurScores.Persistence
             Name = metadata.Name;
             Group = metadata.Group;
             Subgroup = metadata.Subgroup;
+            IsDeactivated = metadata.IsDeactivated;
         }
     }
 }

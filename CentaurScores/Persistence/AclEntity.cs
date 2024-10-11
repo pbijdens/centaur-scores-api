@@ -9,10 +9,12 @@
         /// DB ID
         /// </summary>
         public int? Id { get; set; }
+
         /// <summary>
         /// Name of the ACL, unique.
         /// </summary>
         public string Name { get; set; } = string.Empty;
+
         /// <summary>
         /// List of accounts belonging to this ACL.
         /// </summary>

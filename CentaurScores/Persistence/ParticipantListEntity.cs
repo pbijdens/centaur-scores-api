@@ -11,14 +11,23 @@ namespace CentaurScores.Persistence
         /// DB ID
         /// </summary>
         public int? Id { get; set; } = null;
+        
         /// <summary>
         /// Name of the list
         /// </summary>
         public string Name { get; set; } = string.Empty;
+        
         /// <summary>
         /// List of entries.
         /// </summary>
         public List<ParticipantListEntryEntity> Entries { get; set; } = [];
+        
+        /// <summary>
+        /// The personal best lists that are associated with this participant list.
+        /// If a match 
+        /// </summary>
+        public List<PersonalBestsListEntity> PersonalBestLists { get; set; } = [];
+
         /// <summary>
         /// List of competitions using the list.
         /// </summary>

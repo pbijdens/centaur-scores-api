@@ -16,6 +16,7 @@ namespace CentaurScores.CompetitionLogic
             [
                 new RulesetModel
                 {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoor25M1P,
                     GroupName = GroupName,
                     Code = "25m1p",
                     Name = "Indoor 25m1p",

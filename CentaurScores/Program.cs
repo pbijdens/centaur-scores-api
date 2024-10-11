@@ -60,6 +60,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddTransient<ITokenService, TokenService>();
 builder.Services.AddTransient<IMatchRepository, MatchRepository>();
 builder.Services.AddTransient<ICompetitionRepository, CompetitionRepository>();
+builder.Services.AddTransient<IParticipantListService, ParticipantListService>();
+builder.Services.AddTransient<IPersonalBestService, PersonalBestService>();
 builder.Services.AddTransient<IDatabaseServices, MySQLDatabaseService>();
 builder.Services.AddHttpClient();
 

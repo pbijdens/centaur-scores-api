@@ -9,10 +9,12 @@
         /// DB ID
         /// </summary>
         public int? Id { get; set; }
+
         /// <summary>
         /// Username, less than 32 characters long.
         /// </summary>
         public string Username { get; set; } = string.Empty;
+
         /// <summary>
         /// A 4-character salt followed by a 64-character SHA256 hash of the concatenation of the salt 
         /// and the password for the user, so:

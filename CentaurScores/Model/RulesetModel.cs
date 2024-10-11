@@ -6,6 +6,11 @@
     public class RulesetModel
     {
         /// <summary>
+        /// Uniquely identifies the competition format, used to check compatibility between 
+        /// personal bests. Make sure these are identical when the match format is identical.
+        /// </summary>
+        public required string CompetitionFormat { get; set; }
+        /// <summary>
         /// Only rulesets in the same group(s) may be combined in a single competition.
         /// </summary>
         public string GroupName { get; set; } = string.Empty;

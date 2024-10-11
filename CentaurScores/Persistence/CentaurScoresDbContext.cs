@@ -48,6 +48,14 @@ namespace CentaurScores.Persistence
         /// All competitions.
         /// </summary>
         public DbSet<CompetitionEntity> Competitions { get; set; }
+        /// <summary>
+        /// All personal best lists.
+        /// </summary>
+        public DbSet<PersonalBestsListEntity> PersonalBestLists { get; set; }
+        /// <summary>
+        /// All personal best lists entries for all lists.
+        /// </summary>
+        public DbSet<PersonalBestsListEntryEntity> PersonalBestListEntries { get; set; }
 
         /// <inheritdoc/>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -94,6 +102,7 @@ namespace CentaurScores.Persistence
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.Property(e => e.Name).IsRequired();
                 entity.HasMany(e => e.Entries).WithOne(p => p.List).OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.PersonalBestLists).WithOne(p => p.ParticipantList).OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<ParticipantListEntryEntity>(entity =>
@@ -101,6 +110,7 @@ namespace CentaurScores.Persistence
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.Property(e => e.Name).IsRequired();
+                entity.HasMany(e => e.PersonalBests).WithOne(pb => pb.Participant);
             });
 
             modelBuilder.Entity<CompetitionEntity>(entity =>
@@ -131,6 +141,21 @@ namespace CentaurScores.Persistence
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(256);
                 entity.HasIndex(e => e.Name).IsUnique(true);
                 entity.HasMany(e => e.Accounts).WithMany(a => a.ACLs);
+            });
+
+            modelBuilder.Entity<PersonalBestsListEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(256);
+                entity.HasIndex(e => e.Name).IsUnique(true);
+                entity.HasMany(e => e.Entries).WithOne(a => a.List);
+            });
+
+            modelBuilder.Entity<PersonalBestsListEntryEntity>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
         }
     }

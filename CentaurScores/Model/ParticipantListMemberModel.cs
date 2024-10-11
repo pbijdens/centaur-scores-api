@@ -20,5 +20,8 @@ namespace CentaurScores.Model
 
         /// <summary>A default sub-group for the participant.</summary>
         public string Subgroup { get; set; } = string.Empty;
+
+        /// <summary>True indicates the memebr is deactivated..</summary>
+        public bool IsDeactivated { get; set; } = false;
     }
 }

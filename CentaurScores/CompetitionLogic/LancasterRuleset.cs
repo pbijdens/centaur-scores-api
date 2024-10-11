@@ -11,6 +11,7 @@ namespace CentaurScores.CompetitionLogic
             [
                 new RulesetModel
                 {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoorLancasterQualifier,
                     GroupName = GroupName,
                     Code = "LANV",
                     Name = "Lancaster Voorronde",
@@ -22,12 +23,13 @@ namespace CentaurScores.CompetitionLogic
                     RequiredScoreValues = RulesetConstants.KeyboardsLancaster
                 },
                 new RulesetModel
-                {                    
+                {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoorLancasterFinals,
                     GroupName = GroupName,
                     Code = "LANF",
                     Name = "Lancaster Finaleronde",
                     RequiredArrowsPerEnd = 3,
-                    RequiredEnds = 10,
+                    RequiredEnds = 5,
                     RequiredClasses = RulesetConstants.Classes,
                     RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
                     RequiredTargets = RulesetConstants.TargetsLancasterFinale,

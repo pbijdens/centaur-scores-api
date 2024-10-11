@@ -7,10 +7,12 @@ namespace CentaurScores.CompetitionLogic
     public class Indoor3pRuleset : TotalScoreBasedResultCalculatorBase<TsbTieBreakingComparer, TsbParticipantWrapperCompetitionComparer>, IRuleService
     {
         private const string GroupName = "Indoor 18m3p, 25m3p";
+        private const string GroupNameFun = "Indoor Fun";
         private static readonly List<RulesetModel> RulsetDefinitions =
             [
                 new RulesetModel
                 {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoor18M3P,
                     GroupName = GroupName,
                     Code = "18m3p",
                     Name = "Indoor 18m3p",
@@ -23,6 +25,7 @@ namespace CentaurScores.CompetitionLogic
                 },
                 new RulesetModel
                 {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoor25M3P,
                     GroupName = GroupName,
                     Code = "25m3p",
                     Name = "Indoor 25m3p",
@@ -32,6 +35,19 @@ namespace CentaurScores.CompetitionLogic
                     RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
                     RequiredTargets = RulesetConstants.Targets25M,
                     RequiredScoreValues = RulesetConstants.Keyboards25M
+                },
+                new RulesetModel
+                {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoorFun,
+                    GroupName = GroupNameFun,
+                    Code = "fun",
+                    Name = "Indoor fun-wedstrijd",
+                    RequiredArrowsPerEnd = 3,
+                    RequiredEnds = 10,
+                    RequiredClasses = RulesetConstants.Classes,
+                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredTargets = RulesetConstants.TargetsFun,
+                    RequiredScoreValues = RulesetConstants.KeyboardsFun
                 },
             ];
         private readonly IConfiguration configuration;

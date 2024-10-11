@@ -10,7 +10,7 @@ namespace CentaurScores.Controllers
     /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("/participantlists")]
-    public class ParticipantListsController(ICompetitionRepository competitionRepository)
+    public class ParticipantListsController(IParticipantListService participantListsRepository)
     {
         /// <summary>
         /// Returns all participant lists for this organization.
@@ -21,7 +21,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<ParticipantListModel>>> GetParticipantLists()
         {
-            return await competitionRepository.GetParticipantLists();
+            return await participantListsRepository.GetParticipantLists();
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ParticipantListModel?>> GetParticipantList([FromRoute] int listId)
         {
-            return await competitionRepository.GetParticipantList(listId);
+            return await participantListsRepository.GetParticipantList(listId);
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ParticipantListModel?>> UpdateParticipantList([FromRoute] int listId, [FromBody] ParticipantListModel model)
         {
-            return await competitionRepository.UpdateParticipantList(listId, model);
+            return await participantListsRepository.UpdateParticipantList(listId, model);
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<int>> DeleteParticipantList([FromRoute] int listId)
         {
-            return await competitionRepository.DeleteParticipantList(listId);
+            return await participantListsRepository.DeleteParticipantList(listId);
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ParticipantListModel?>> CreateParticipantList([FromBody] ParticipantListModel model)
         {
-            return await competitionRepository.CreateParticipantList(model);
+            return await participantListsRepository.CreateParticipantList(model);
         }
         
         /// <summary>
@@ -87,7 +87,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<ParticipantListMemberModel>>> GetParticipantListMembers([FromRoute] int listId)
         {
-            return await competitionRepository.GetParticipantListMembers(listId);
+            return await participantListsRepository.GetParticipantListMembers(listId);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ParticipantListMemberModel?>> GetParticipantListMember([FromRoute] int listId, [FromRoute] int memberId)
         {
-            return await competitionRepository.GetParticipantListMember(listId, memberId);
+            return await participantListsRepository.GetParticipantListMember(listId, memberId);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ParticipantListMemberModel?>> UpdateParticipantListMember([FromRoute] int listId, [FromRoute] int memberId, [FromBody] ParticipantListMemberModel model)
         {
-            return await competitionRepository.UpdateParticipantListMember(listId, memberId, model);
+            return await participantListsRepository.UpdateParticipantListMember(listId, memberId, model);
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<int>> DeleteParticipantListMember([FromRoute] int listId, [FromRoute] int memberId)
         {
-            return await competitionRepository.DeleteParticipantListMember(listId, memberId);
+            return await participantListsRepository.DeactivateParticipantListMember(listId, memberId);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ParticipantListMemberModel?>> CreateParticipantListMember([FromRoute] int listId, [FromBody] ParticipantListMemberModel model)
         {
-            return await competitionRepository.CreateParticipantListMember(listId, model);
+            return await participantListsRepository.CreateParticipantListMember(listId, model);
         }
     }
 }
