@@ -25,10 +25,62 @@ namespace CentaurScores.CompetitionLogic
                 },
                 new RulesetModel
                 {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoor18M3P60,
+                    GroupName = GroupName,
+                    Code = "18m3p60",
+                    Name = "Indoor 18m3p 60 pijl",
+                    RequiredArrowsPerEnd = 3,
+                    RequiredEnds = 20,
+                    RequiredClasses = RulesetConstants.Classes,
+                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredTargets = RulesetConstants.Targets18M,
+                    RequiredScoreValues = RulesetConstants.Keyboards18M
+                },
+                new RulesetModel
+                {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoor18M3P120,
+                    GroupName = GroupName,
+                    Code = "18m3p120",
+                    Name = "Indoor 18m3p 120pijl",
+                    RequiredArrowsPerEnd = 3,
+                    RequiredEnds = 40,
+                    RequiredClasses = RulesetConstants.Classes,
+                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredTargets = RulesetConstants.Targets18M,
+                    RequiredScoreValues = RulesetConstants.Keyboards18M
+                },
+                new RulesetModel
+                {
                     CompetitionFormat = RulesetConstants.CompetitionFormatIndoor25M3P,
                     GroupName = GroupName,
                     Code = "25m3p",
                     Name = "Indoor 25m3p",
+                    RequiredArrowsPerEnd = 3,
+                    RequiredEnds = 10,
+                    RequiredClasses = RulesetConstants.Classes,
+                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredTargets = RulesetConstants.Targets25M,
+                    RequiredScoreValues = RulesetConstants.Keyboards25M
+                },
+                new RulesetModel
+                {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoor25M3P60,
+                    GroupName = GroupName,
+                    Code = "25m3p60",
+                    Name = "Indoor 25m3p 60 pijl",
+                    RequiredArrowsPerEnd = 3,
+                    RequiredEnds = 10,
+                    RequiredClasses = RulesetConstants.Classes,
+                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredTargets = RulesetConstants.Targets25M,
+                    RequiredScoreValues = RulesetConstants.Keyboards25M
+                },
+                new RulesetModel
+                {
+                    CompetitionFormat = RulesetConstants.CompetitionFormatIndoor25M3P120,
+                    GroupName = GroupName,
+                    Code = "25m3p120",
+                    Name = "Indoor 25m3p 120 pijl",
                     RequiredArrowsPerEnd = 3,
                     RequiredEnds = 10,
                     RequiredClasses = RulesetConstants.Classes,

@@ -14,6 +14,14 @@ namespace CentaurScores.CompetitionLogic
         /// <summary></summary>
         public static string CompetitionFormatIndoor25M3P => "Indoor 25m3p, 30 pijlen";
         /// <summary></summary>
+        public static string CompetitionFormatIndoor25M3P60 => "Indoor 25m3p, 60 pijlen";
+        /// <summary></summary>
+        public static string CompetitionFormatIndoor25M3P120 => "Indoor 25m3p, 120 pijlen";
+        /// <summary></summary>
+        public static string CompetitionFormatIndoor18M3P60 => "Indoor 18m3p, 60 pijlen";
+        /// <summary></summary>
+        public static string CompetitionFormatIndoor18M3P120 => "Indoor 18m3p, 120 pijlen";
+        /// <summary></summary>
         public static string CompetitionFormatIndoorFun => "Indoor Fun";
         /// <summary></summary>
         public static string CompetitionFormatIndoorLancasterQualifier => "Indoor Lancaster 18m3p, 30 pijlen, 0-11";
