@@ -62,7 +62,7 @@ namespace CentaurScores.CompetitionLogic
         }
 
         /// <see cref="IRuleService.GetSupportedRulesets()"></see>
-        public async Task<List<RulesetModel>> GetSupportedRulesets()
+        public override async Task<List<RulesetModel>> GetSupportedRulesets()
         {
             return await Task.FromResult(RulsetDefinitions);
         }

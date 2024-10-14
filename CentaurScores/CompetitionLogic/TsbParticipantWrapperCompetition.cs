@@ -1,4 +1,5 @@
 ﻿using CentaurScores.Model;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 
 namespace CentaurScores.CompetitionLogic
 {
@@ -21,6 +22,11 @@ namespace CentaurScores.CompetitionLogic
         /// Grouped per ruleset, the total of all non-discarded scores for that ruleset.
         /// </summary>
         public Dictionary<string, int> TotalScoresPerRuleset = [];
+
+        /// <summary>
+        /// Average score per arrow.
+        /// </summary>
+        public double PerArrowAverage {  get; set; }
 
         /// <summary>
         /// The sum of the scores per ruleset.

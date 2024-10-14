@@ -31,6 +31,26 @@
         public int Score { get; set; } = 0;
 
         /// <summary>
+        /// Average score per arrow.
+        /// </summary>
+        public double PerArrowAverage { get; set; } = 0;
+
+        /// <summary>
+        /// Average score per arrow.
+        /// </summary>
+        public double PrPerArrowAverage { get; set; } = 0;
+
+        /// <summary>
+        /// True if this may become a PR.
+        /// </summary>
+        public bool IsPR {  get; set; }
+
+        /// <summary>
+        /// PR Score
+        /// </summary>
+        public int PrScore { get; set; } = 0;
+
+        /// <summary>
         /// If a tiebraker was needed to determing mutual position for this record, this line needs to be
         /// printed on the results-list.
         /// </summary>

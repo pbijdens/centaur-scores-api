@@ -26,6 +26,11 @@
         public int TotalScore {  get; set; }
 
         /// <summary>
+        /// Average score per arrow over all counting matches.
+        /// </summary>
+        public double PerArrowAverage { get; set; }
+
+        /// <summary>
         /// Per ruleset (in the ruleset group for the competition) the score data of this participant.
         /// </summary>
         public Dictionary<string, CompetitionRulesetResultEntry> PerRuleset { get; set; } = [];

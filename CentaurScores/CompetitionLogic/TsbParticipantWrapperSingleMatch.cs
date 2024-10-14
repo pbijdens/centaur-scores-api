@@ -43,5 +43,13 @@ namespace CentaurScores.CompetitionLogic
         /// when the 8s were used as a tiebreaker).
         /// </summary>
         public int TiebreakerArrow = int.MaxValue;
+        /// <summary>
+        /// Per-arrow average for the user's PR in this match.
+        /// </summary>
+        public double PrPerArrowAverage = 0.0;
+        /// <summary>
+        /// Personal best.
+        /// </summary>
+        public int Pr = 0;
     }
 }

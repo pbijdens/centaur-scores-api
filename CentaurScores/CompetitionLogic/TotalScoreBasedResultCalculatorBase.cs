@@ -1,8 +1,10 @@
 ﻿using CentaurScores.Model;
 using CentaurScores.Persistence;
 using CentaurScores.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using System.Linq;
 
 
 namespace CentaurScores.CompetitionLogic
@@ -19,7 +21,7 @@ namespace CentaurScores.CompetitionLogic
     /// </remarks>
     /// <typeparam name="TmatchComparer">A class that contains the logic to compare two TsbParticipantWrapperSingleMatch typed objects to each other to determine which scores best.</typeparam>
     /// <typeparam name="TcompetitionComparer">A class that contains  the logic to compare two TsbParticipantWrapperCompetition typed objects to each other to determine which scores best.</typeparam>
-    public class TotalScoreBasedResultCalculatorBase<TmatchComparer, TcompetitionComparer>
+    public abstract class TotalScoreBasedResultCalculatorBase<TmatchComparer, TcompetitionComparer>
         where TmatchComparer : IComparer<TsbParticipantWrapperSingleMatch>, new()
         where TcompetitionComparer : IComparer<TsbParticipantWrapperCompetition>, new()
     {
@@ -27,6 +29,12 @@ namespace CentaurScores.CompetitionLogic
         /// By default only the best 4 scores (per Ruleset Code) are used to calculate the total competito result.
         /// </summary>
         protected int RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 4; // TODO: LOAD FROM MATCH CONFIGURATION IN DB ENTYRY
+
+        /// <summary>
+        /// Request suppoerted rulesets to be returned.
+        /// </summary>
+        /// <returns></returns>
+        public abstract Task<List<RulesetModel>> GetSupportedRulesets();
 
         /// <summary>
         /// Implements all logic required to calculate a competition result for all matches that have been played sofar
@@ -137,6 +145,7 @@ namespace CentaurScores.CompetitionLogic
 
             // Populate the list of match participants and add the data that's needed to calculate a result.
             List<TsbParticipantWrapperSingleMatch> participants = PopulateMatchParticipantsList(match, matchModel);
+            await PopulatePersonalRecordAverages(db, match, participants);
 
             // Only process groups and subgroups that are actually used
             List<GroupInfo> allClasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.GroupsJSON) ?? [];
@@ -155,21 +164,21 @@ namespace CentaurScores.CompetitionLogic
                 Ruleset = match.RulesetCode ?? string.Empty,
                 Groups = allClasses,
                 Subgroups = allSubclasses,
-                Ungrouped = await SortSingleMatchResult(db, allArrowValues, participants)
+                Ungrouped = await SortSingleMatchResult(db, allArrowValues, participants, match)
             };
             foreach (GroupInfo classGroupInfo in classes)
             {
                 var l1participants = participants.Where(x => x.ClassCode == classGroupInfo.Code).ToList();
                 if (l1participants.Count != 0)
                 {
-                    result.ByClass[classGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l1participants);
+                    result.ByClass[classGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l1participants, match);
                     result.BySubclass[classGroupInfo.Code] = [];
                     foreach (GroupInfo subclassGroupInfo in subclasses)
                     {
                         var l2participants = participants.Where(x => x.ClassCode == classGroupInfo.Code && x.SubclassCode == subclassGroupInfo.Code).ToList();
                         if (l2participants.Count != 0)
                         {
-                            result.BySubclass[classGroupInfo.Code][subclassGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l2participants);
+                            result.BySubclass[classGroupInfo.Code][subclassGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l2participants, match);
                         }
                     }
                 }
@@ -178,20 +187,53 @@ namespace CentaurScores.CompetitionLogic
             return result;
         }
 
+        private async Task PopulatePersonalRecordAverages(CentaurScoresDbContext db, MatchEntity match, List<TsbParticipantWrapperSingleMatch> participants)
+        {
+            RulesetModel ruleset = (await GetSupportedRulesets()).First(rs => rs.Code == match.RulesetCode);
+            string matchCompetitionFormat = ruleset.CompetitionFormat;
+
+            Dictionary<int, int> personalBest = new();
+            foreach (var pbe in db.PersonalBestListEntries.Include(e => e.Participant).AsNoTracking().Where(e => e.List.CompetitionFormat == matchCompetitionFormat).ToList())
+            {
+                if (pbe.Participant != null && pbe.Participant.Id != null)
+                {
+                    personalBest[pbe.Participant.Id ?? -1] = pbe.Score;
+                }
+            }
+
+            participants.ForEach(p => { 
+                if (personalBest.TryGetValue(p.Participant.ParticipantListEntryId ?? -2, out int personalBestScore) && match.NumberOfEnds > 0 && match.ArrowsPerEnd > 0)
+                {
+                    p.Pr = personalBestScore;
+                    p.PrPerArrowAverage = (double)personalBestScore / (match.NumberOfEnds * match.ArrowsPerEnd);
+                }
+                else
+                {
+                    p.Pr = 0;
+                    p.PrPerArrowAverage = 0;
+                }
+            });
+
+        }
+
         /// <summary>
         /// For a single category in a match, sort all the results.
         /// </summary>
         /// <param name="db"></param>
         /// <param name="allArrowValues"></param>
         /// <param name="participants"></param>
+        /// <param name="match"></param>
         /// <returns></returns>
-        protected virtual async Task<List<MatchScoreForParticipant>> SortSingleMatchResult(CentaurScoresDbContext db, List<int> allArrowValues, List<TsbParticipantWrapperSingleMatch> participants)
+        protected virtual async Task<List<MatchScoreForParticipant>> SortSingleMatchResult(CentaurScoresDbContext db, List<int> allArrowValues, List<TsbParticipantWrapperSingleMatch> participants, MatchEntity? match)
         {
             TmatchComparer tiebreakingComparer = new();
             List<MatchScoreForParticipant> result = [];
 
+            int endsCompleted = 0;
             participants.ForEach(p =>
             {
+                int ends = p.Ends.Where(e => e.Arrows.Any(x => x != null)).Count();
+                endsCompleted = Math.Max(endsCompleted, ends);
                 // reset tiebreakers and other temporary data for each list created
                 p.TiebreakerArrow = int.MaxValue;
             });
@@ -210,12 +252,17 @@ namespace CentaurScores.CompetitionLogic
                     // If consecutive records have the exact same score and tiebreakers won't work, 
                     Position = index + 1,
                     Score = pi.Score,
+                    PerArrowAverage = (match == null || match.ArrowsPerEnd <= 0 || endsCompleted <= 0) ? 0 : (double)pi.Score / (match.ArrowsPerEnd * endsCompleted),
+                    PrPerArrowAverage = pi.PrPerArrowAverage,
+                    PrScore = pi.Pr,
                     ScoreInfo = [ new ScoreInfoEntry {
                         IsDiscarded = false,
+                        NumberOfArrows = (match == null || match.ArrowsPerEnd <= 0 || match.NumberOfEnds <= 0) ? 0 : (match.ArrowsPerEnd * match.NumberOfEnds),
                         Score = pi.Score,
                         Info = string.Empty
                     }],
                 };
+                entry.IsPR = entry.PerArrowAverage > pi.PrPerArrowAverage && pi.PrPerArrowAverage > 0.0;
 
                 if (index > 0 && tiebreakingComparer.Compare(sorted[index - 1], sorted[index]) == 0)
                 {
@@ -274,7 +321,7 @@ namespace CentaurScores.CompetitionLogic
                         ParticipantData = x.ToModel().ToData(),
                         Ends = [],
                         ClassCode = x.Group,
-                        SubclassCode = x.Subgroup
+                        SubclassCode = x.Subgroup,
                     };
                     MatchRepository.AutoFixParticipantModel(matchModel, pp.Participant); // ensures scorecards match the match configuration
                     pp.Ends = pp.Participant.Ends;
@@ -307,6 +354,9 @@ namespace CentaurScores.CompetitionLogic
             for (int index = 0; index < sorted.Count; index++)
             {
                 var pi = sorted[index];
+                List<ScoreInfoEntry> countingMatches = pi.ScoresPerRuleset.SelectMany(kvp => kvp.Value.Where(x => x != null && !x.IsDiscarded)).OfType<ScoreInfoEntry>().ToList();
+                int countingArrows = countingMatches.Sum(x => x.NumberOfArrows);
+                double countingScore = countingMatches.Sum(x => x.Score);
                 CompetitionScoreForParticipantModel entry = new()
                 {
                     ParticipantInfo = $"{pi.ParticipantData.Name}",
@@ -314,6 +364,7 @@ namespace CentaurScores.CompetitionLogic
                     // If consecutive records have the exact same score and tiebreakers won't work, 
                     Position = index + 1,
                     TotalScore = pi.TotalScore,
+                    PerArrowAverage = countingArrows == 0 ? 0 : countingScore / countingArrows,
                     PerRuleset = []
                 };
                 foreach ((string ruleset, List<ScoreInfoEntry?> scores) in pi.ScoresPerRuleset)

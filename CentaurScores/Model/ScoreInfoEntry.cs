@@ -13,6 +13,10 @@
         /// </summary>
         public int Score { get; set; } = 0;
         /// <summary>
+        /// Number of arrows.
+        /// </summary>
+        public int NumberOfArrows{ get; set; }
+        /// <summary>
         /// Supporting information for the score, such as tiebreaker information or interesting details.
         /// If non-empty should be rendered.
         /// </summary>
