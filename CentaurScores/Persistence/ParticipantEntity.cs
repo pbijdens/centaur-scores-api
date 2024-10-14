@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 namespace CentaurScores.Persistence
 {
     /// <summary>
-    /// DB match participant
+    /// DB match participant. Do not confuse with "ParticipantListEntry" which is the actual member.
     /// </summary>
     public class ParticipantEntity
     {
@@ -30,11 +30,11 @@ namespace CentaurScores.Persistence
         /// </summary>
         public string Name { get; set; } = string.Empty;
         /// <summary>
-        /// Archer group code.
+        /// Code of the GroupInfo for the archer's discipline as represented in the match definition's Groups JSON.
         /// </summary>
         public string Group { get; set; } = string.Empty;
         /// <summary>
-        /// Archer subgroup code.
+        /// Code of the GroupInfo for the archer's age group as represented in the match definition's Subgroups JSON.
         /// </summary>
         public string Subgroup { get; set; } = string.Empty;
         /// <summary>

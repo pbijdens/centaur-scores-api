@@ -46,6 +46,18 @@ namespace CentaurScores.Persistence
                 Subgroup = Subgroup,
                 IsDeactivated = IsDeactivated,
             };
+            if (PersonalBests != null)
+            {
+                foreach (PersonalBestsListEntryEntity item in PersonalBests)
+                {
+                    if (item.Score > 0)
+                    {
+                        PersonalBestListEntryModel model = item.ToModel(false);
+                        model.ListName = item.List?.Name;
+                        result.PersonalBests.Add(model);
+                    }
+                }
+            }
             return result;
         }
 

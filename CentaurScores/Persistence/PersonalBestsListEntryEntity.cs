@@ -34,12 +34,12 @@ namespace CentaurScores.Persistence
         /// <summary>Additional notes, e.g. a description of the match at which this was achieved.</summary>
         public string Notes { get; set; } = string.Empty;
 
-        internal PersonalBestListEntryModel ToModel()
+        internal PersonalBestListEntryModel ToModel(bool includeParticipant = true)
         {
             PersonalBestListEntryModel model = new()
             {
                 Id = Id,
-                Participant = Participant?.ToModel() ?? new ParticipantListMemberModel { Id = -1 },
+                Participant = includeParticipant ? (Participant?.ToModel() ?? new ParticipantListMemberModel { Id = -1 }) : new ParticipantListMemberModel { Id = Participant?.Id },
                 Discipline = Discipline,
                 Score = Score,
                 Achieved = AchievedDate.ToString("yyyy-MM-dd"),

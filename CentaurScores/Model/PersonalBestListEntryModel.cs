@@ -34,5 +34,10 @@
         /// When was this achieved?
         /// </summary>
         public string Achieved { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The name of the list. Optional.
+        /// </summary>
+        public string? ListName {  get; set; } = string.Empty;
     }
 }

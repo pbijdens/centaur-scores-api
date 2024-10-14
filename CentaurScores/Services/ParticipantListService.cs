@@ -115,7 +115,10 @@ namespace CentaurScores.Services
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
 
-            ParticipantListEntryEntity? participantListEntryEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.Id == memberId && x.List.Id == listId);
+            ParticipantListEntryEntity? participantListEntryEntity = await db.ParticipantListEntries
+                .Include(x => x.PersonalBests)
+                    .ThenInclude(x => x.List)
+                .FirstOrDefaultAsync(x => x.Id == memberId && x.List.Id == listId);
             if (null != participantListEntryEntity)
             {
                 return participantListEntryEntity.ToModel();

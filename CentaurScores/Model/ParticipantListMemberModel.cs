@@ -21,7 +21,11 @@ namespace CentaurScores.Model
         /// <summary>A default sub-group for the participant.</summary>
         public string Subgroup { get; set; } = string.Empty;
 
-        /// <summary>True indicates the memebr is deactivated..</summary>
+        /// <summary>True indicates the member is deactivated..</summary>
         public bool IsDeactivated { get; set; } = false;
+
+        /// <summary>If applicable, all personal best entries for this user. Only populated
+        /// when a single participant list entry is retrieved.</summary>
+        public List<PersonalBestListEntryModel> PersonalBests { get; set; } = [];
     }
 }

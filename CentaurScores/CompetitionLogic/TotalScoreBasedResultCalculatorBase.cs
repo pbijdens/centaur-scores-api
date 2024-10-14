@@ -150,8 +150,8 @@ namespace CentaurScores.CompetitionLogic
             // Only process groups and subgroups that are actually used
             List<GroupInfo> allClasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.GroupsJSON) ?? [];
             List<GroupInfo> allSubclasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.SubgroupsJSON) ?? [];
-            List<GroupInfo> classes = allClasses.Where(gi => participants.Any(p => p.ClassCode == gi.Code)).ToList();
-            List<GroupInfo> subclasses = allSubclasses.Where(gi => participants.Any(p => p.SubclassCode == gi.Code)).ToList();
+            List<GroupInfo> disciplineGroupInfos = allClasses.Where(gi => participants.Any(p => p.DisciplineCode == gi.Code)).ToList();
+            List<GroupInfo> ageGroupGroupInfos = allSubclasses.Where(gi => participants.Any(p => p.AgeGroupCode == gi.Code)).ToList();
             // Create a list of all single arrow scores  that were actually achieved in the match (may be empty, may skip some values)
             List<int> allArrowValues = [.. participants.SelectMany(x => x.Ends.SelectMany(y => y.Arrows.Select(a => a ?? 0))).Distinct().OrderByDescending(x => x)];
             // Pre-populate the tiebreaker dictionaries for all participants
@@ -166,19 +166,19 @@ namespace CentaurScores.CompetitionLogic
                 Subgroups = allSubclasses,
                 Ungrouped = await SortSingleMatchResult(db, allArrowValues, participants, match)
             };
-            foreach (GroupInfo classGroupInfo in classes)
+            foreach (GroupInfo disciplineGroupInfo in disciplineGroupInfos)
             {
-                var l1participants = participants.Where(x => x.ClassCode == classGroupInfo.Code).ToList();
+                var l1participants = participants.Where(x => x.DisciplineCode == disciplineGroupInfo.Code).ToList();
                 if (l1participants.Count != 0)
                 {
-                    result.ByClass[classGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l1participants, match);
-                    result.BySubclass[classGroupInfo.Code] = [];
-                    foreach (GroupInfo subclassGroupInfo in subclasses)
+                    result.ByClass[disciplineGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l1participants, match);
+                    result.BySubclass[disciplineGroupInfo.Code] = [];
+                    foreach (GroupInfo ageGroupGroupInfo in ageGroupGroupInfos)
                     {
-                        var l2participants = participants.Where(x => x.ClassCode == classGroupInfo.Code && x.SubclassCode == subclassGroupInfo.Code).ToList();
+                        var l2participants = participants.Where(x => x.DisciplineCode == disciplineGroupInfo.Code && x.AgeGroupCode == ageGroupGroupInfo.Code).ToList();
                         if (l2participants.Count != 0)
                         {
-                            result.BySubclass[classGroupInfo.Code][subclassGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l2participants, match);
+                            result.BySubclass[disciplineGroupInfo.Code][ageGroupGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l2participants, match);
                         }
                     }
                 }
@@ -320,8 +320,8 @@ namespace CentaurScores.CompetitionLogic
                         Participant = x.ToModel(),
                         ParticipantData = x.ToModel().ToData(),
                         Ends = [],
-                        ClassCode = x.Group,
-                        SubclassCode = x.Subgroup,
+                        DisciplineCode = x.Group,
+                        AgeGroupCode = x.Subgroup,
                     };
                     MatchRepository.AutoFixParticipantModel(matchModel, pp.Participant); // ensures scorecards match the match configuration
                     pp.Ends = pp.Participant.Ends;

@@ -42,7 +42,7 @@ namespace CentaurScores.CompetitionLogic
         public ClubkampioenschapIndoor3pRuleset(IConfiguration configuration)
         {
             this.configuration = configuration;
-            RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 4; // TODO: Read from the compeetition entity ruleset paramaters!
+            RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 5;
         }
 
         /// <see cref="IRuleService.CalculateCompetitionResult(int)"></see>

@@ -24,11 +24,11 @@ namespace CentaurScores.CompetitionLogic
         /// <summary>
         /// Class or Group
         /// </summary>
-        public required string ClassCode;
+        public required string DisciplineCode;
         /// <summary>
         /// Subclass or Subgroup
         /// </summary>
-        public required string SubclassCode;
+        public required string AgeGroupCode;
         /// <summary>
         /// Sum of all arrows in all ends.
         /// </summary>
