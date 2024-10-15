@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CentaurScores.Controllers
 {
     /// <summary>
-    /// Endpoints for maintaining lists of potential match participants, to be uused when creating competitions.
+    /// Endpoints for maintaining peronal best scores for participants.
     /// </summary>
     /// <remarks>Constructor</remarks>
     [ApiController]
@@ -83,7 +83,7 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns all members for a participant list.
+        /// Returns all entries on a personal best list, ordered by discipline, then score descending..
         /// </summary>
         /// <param name="memberListId">The parent participant list ID.</param>
         /// <param name="personalBestListId">The list ID</param>
@@ -97,7 +97,7 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Returns a member from a personal best scores list.
+        /// Returns the personal best record for a single member, given the ID of the record.
         /// </summary>
         /// <param name="memberListId">The parent participant list ID.</param>
         /// <param name="personalBestListId">The list ID</param>
@@ -112,11 +112,11 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Updates a single personal best list member's metadata.
+        /// Updates a single personal best list entry by ID.
         /// </summary>
         /// <param name="memberListId">The parent participant list ID.</param>
         /// <param name="personalBestListId">The ID of the list.</param>
-        /// <param name="memberId">The ID of the member record that is to be updated.</param>
+        /// <param name="memberId">The ID of the record that is to be updated.</param>
         /// <param name="model">The new metadata model.</param>
         /// <returns>The updated model.</returns>
         [HttpPut("{personalBestListId}/members/{memberId}")]
@@ -128,7 +128,7 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Add a new personal best to a list.
+        /// Add a new personal best record to a list.
         /// </summary>
         /// <param name="memberListId">The parent participant list ID.</param>
         /// <param name="personalBestListId">The list ID</param>
@@ -143,7 +143,7 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
-        /// Scan for new records and suggest additions to the various lists.
+        /// Scan for new records and suggest additions to the various lists. Will consider all competition scores in the system. May take some time to complete.
         /// </summary>
         /// <param name="memberListId">The parent participant list ID.</param>
         /// <returns>The newly added model with its ID.</returns>
