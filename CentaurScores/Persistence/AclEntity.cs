@@ -1,4 +1,7 @@
-﻿namespace CentaurScores.Persistence
+﻿
+using CentaurScores.Model;
+
+namespace CentaurScores.Persistence
 {
     /// <summary>
     /// Simplest possible ACL implementation. No inheritance, no rules, just included accounts.
@@ -19,5 +22,13 @@
         /// List of accounts belonging to this ACL.
         /// </summary>
         public List<AccountEntity> Accounts { get; set; } = [];
+
+        internal UserACLModel ToModel()
+        {
+            return new() {
+                Id = Id,
+                Name = Name,
+            };
+        }
     }
 }

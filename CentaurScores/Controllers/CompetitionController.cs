@@ -1,4 +1,5 @@
-﻿using CentaurScores.Model;
+﻿using CentaurScores.Attributes;
+using CentaurScores.Model;
 using CentaurScores.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -47,6 +48,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{competitionId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<CompetitionModel?>> UpdateCompetition([FromRoute] int competitionId, [FromBody] CompetitionModel model)
         {
             return await competitionRepository.UpdateCompetition(competitionId, model);
@@ -62,6 +64,7 @@ namespace CentaurScores.Controllers
         [HttpDelete("{competitionId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<int>> DeleteCompetition([FromRoute] int competitionId)
         {
             return await competitionRepository.DeleteCompetition(competitionId);

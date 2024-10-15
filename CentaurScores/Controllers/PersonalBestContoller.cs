@@ -1,4 +1,5 @@
-﻿using CentaurScores.Model;
+﻿using CentaurScores.Attributes;
+using CentaurScores.Model;
 using CentaurScores.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,6 +50,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{personalBestListId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<PersonalBestListModel?>> UpdatePersonalBestList([FromRoute] int memberListId, [FromRoute] int personalBestListId, [FromBody] PersonalBestListModel model)
         {
             return await personalBestService.UpdatePersonalBestList(memberListId, model);
@@ -63,6 +65,7 @@ namespace CentaurScores.Controllers
         [HttpDelete("{personalBestListId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<int>> DeletePersonalBestList([FromRoute] int memberListId, [FromRoute] int personalBestListId)
         {
             return await personalBestService.DeletePersonalBestList(memberListId, personalBestListId);
@@ -77,6 +80,7 @@ namespace CentaurScores.Controllers
         [HttpPost()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<PersonalBestListModel?>> CreatePersonalBestList([FromRoute] int memberListId, [FromBody] PersonalBestListModel model)
         {
             return await personalBestService.CreatePersonalBestList(memberListId, model);
@@ -122,6 +126,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{personalBestListId}/members/{memberId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<PersonalBestListEntryModel?>> UpdatePersonalBestListEntry([FromRoute] int memberListId, [FromRoute] int personalBestListId, [FromRoute] int memberId, [FromBody] PersonalBestListEntryModel model)
         {
             return await personalBestService.UpdatePersonalBestListEntry(memberListId, personalBestListId, model);
@@ -150,6 +155,7 @@ namespace CentaurScores.Controllers
         [HttpGet("suggestions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<List<NewPersonalBestModel>>> ScanForRecords([FromRoute] int memberListId)
         {
             return await personalBestService.CalculateUpdatedRecords(memberListId);

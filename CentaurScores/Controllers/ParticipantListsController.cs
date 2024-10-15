@@ -1,4 +1,5 @@
-﻿using CentaurScores.Model;
+﻿using CentaurScores.Attributes;
+using CentaurScores.Model;
 using CentaurScores.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -46,6 +47,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{listId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<ParticipantListModel?>> UpdateParticipantList([FromRoute] int listId, [FromBody] ParticipantListModel model)
         {
             return await participantListsRepository.UpdateParticipantList(listId, model);
@@ -59,6 +61,7 @@ namespace CentaurScores.Controllers
         [HttpDelete("{listId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<int>> DeleteParticipantList([FromRoute] int listId)
         {
             return await participantListsRepository.DeleteParticipantList(listId);
@@ -114,6 +117,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{listId}/members/{memberId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<ParticipantListMemberModel?>> UpdateParticipantListMember([FromRoute] int listId, [FromRoute] int memberId, [FromBody] ParticipantListMemberModel model)
         {
             return await participantListsRepository.UpdateParticipantListMember(listId, memberId, model);
@@ -128,6 +132,7 @@ namespace CentaurScores.Controllers
         [HttpDelete("{listId}/members/{memberId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<int>> DeleteParticipantListMember([FromRoute] int listId, [FromRoute] int memberId)
         {
             return await participantListsRepository.DeactivateParticipantListMember(listId, memberId);
@@ -142,6 +147,7 @@ namespace CentaurScores.Controllers
         [HttpPost("{listId}/members")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<ParticipantListMemberModel?>> CreateParticipantListMember([FromRoute] int listId, [FromBody] ParticipantListMemberModel model)
         {
             return await participantListsRepository.CreateParticipantListMember(listId, model);

@@ -18,15 +18,14 @@ namespace CentaurScoresAPI
         /// <summary>
         /// Send a username and a password to obtain a Bearer token that can be used to authorize for specific operations.
         /// </summary>
-        /// <param name="username">Username, as provided as part of your API key issuance</param>
-        /// <param name="password">The user's password</param>
+        /// <param name="model">Model with the requested login details</param>
         /// <returns>Either returns a valid JWT token or reports a failed status.</returns>
         [HttpPost("login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<string>> Login([FromForm] string username, [FromForm] string password)
+        public async Task<ActionResult<string>> Login([FromBody] LoginRequestModel model)
         {
-            string result = await tokenService.GenerateJwtToken(username, password);
+            string result = await tokenService.GenerateJwtToken(model.Username, model.Password);
             return result;
         }
 

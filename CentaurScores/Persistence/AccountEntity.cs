@@ -1,4 +1,6 @@
-﻿namespace CentaurScores.Persistence
+﻿using CentaurScores.Model;
+
+namespace CentaurScores.Persistence
 {
     /// <summary>
     /// DB Entity for Accounts
@@ -30,5 +32,15 @@
         /// A list of ACL entities that this user is added to. In this system, ACLs explicitly specify all users.
         /// </summary>
         public List<AclEntity> ACLs { get; set; } = []; // List of ACLs that the user belongs to
+
+        internal UserModel ToModel()
+        {
+            return new()
+            {
+                Id = Id,
+                Username = Username,
+                Acls = ACLs.Select(a => a.ToModel()).ToList(),
+            };
+        }
     }
 }

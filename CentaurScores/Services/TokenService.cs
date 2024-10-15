@@ -51,7 +51,12 @@ namespace CentaurScores.Services
             throw new UnauthorizedAccessException($"Bad credentials");
         }
 
-        private static string CalculateSha256Hash(string input)
+        /// <summary>
+        /// Calculates a hash as hex string
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public static string CalculateSha256Hash(string input)
         {
             byte[] data = SHA256.HashData(Encoding.UTF8.GetBytes(input));
             var sBuilder = new StringBuilder();
@@ -62,17 +67,28 @@ namespace CentaurScores.Services
             return sBuilder.ToString();
         }
 
-        const string UsernameClaim          = "username";
-        const string IsAdministratorClaim   = "is-administrator";
-        const string GroupsClaim            = "acls";
+        /// <summary></summary>
+        public const string TokenIdentifier = "token-id";
+        /// <summary></summary>
+        public const string UsernameClaim = "username";
+        /// <summary></summary>
+        public const string IsAdministratorClaim = "is-administrator";
+        /// <summary></summary>
+        public const string GroupsClaim = "acls";
 
         private async Task<string> GenerateJwtToken(AccountEntity account)
         {
-            var claims = new Dictionary<string, string>() {
+            Guid tokenId = Guid.NewGuid();
+            Dictionary<string, string> claims = new Dictionary<string, string>() {
+                { TokenIdentifier, $"{tokenId}" },
                 { UsernameClaim, account.Username },
                 { IsAdministratorClaim, (account.ACLs ?? []).Any(acl => acl.Id == appSettings.AdminACLId) ? "true" : "false" },
                 { GroupsClaim, string.Join(";", (account.ACLs ?? []).Select(a => $"{a.Name}".Replace(";",SemicolonReplacedBy))) }, // really crappy escape but everyone using this string in a groupname deserves what they get
             };
+
+            // TODO: Register tokenId in a fast datastore, link it to the user, and add some of the device info, allowing the user to
+            //       later-on  invalidate this specific token. Reject unlisted tokens. Adds another layer of security that we don't
+            //       really need right now.
 
             foreach (var acl in account.ACLs ?? [])
             {
@@ -87,7 +103,7 @@ namespace CentaurScores.Services
                 {
                     Subject = new ClaimsIdentity([new Claim(IdClaim, $"{account.Id}")]),
                     Claims = new Dictionary<string, object>(claims.Select(a => new KeyValuePair<string, object>(a.Key, a.Value))),
-                    Expires = DateTime.UtcNow.AddDays(1),
+                    Expires = DateTime.UtcNow.AddMinutes(60),
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
                 };
                 return tokenHandler.CreateToken(tokenDescriptor);

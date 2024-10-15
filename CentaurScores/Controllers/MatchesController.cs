@@ -1,4 +1,5 @@
-﻿using CentaurScores.Migrations;
+﻿using CentaurScores.Attributes;
+using CentaurScores.Migrations;
 using CentaurScores.Model;
 using CentaurScores.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -50,6 +51,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<MatchModel>> UpdateMatch([FromRoute] int id, [FromBody] MatchModel match)
         {
             return await matchRepository.UpdateMatch(id, match);
@@ -63,6 +65,7 @@ namespace CentaurScores.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<bool>> DeleteMatch([FromRoute] int id)
         {
             return await matchRepository.DeleteMatch(id);
@@ -76,6 +79,7 @@ namespace CentaurScores.Controllers
         [HttpPost()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<MatchModel>> CreateMatch([FromBody] MatchModel match)
         {
             return await matchRepository.CreateMatch(match);
@@ -102,6 +106,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{id}/active/{isActive}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<MatchModel>> ActivateMatch([FromRoute] int id, [FromRoute] bool isActive)
         {
             return await matchRepository.ActivateMatch(id, isActive);

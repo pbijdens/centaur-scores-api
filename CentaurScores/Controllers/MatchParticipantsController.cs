@@ -1,4 +1,5 @@
-﻿using CentaurScores.Model;
+﻿using CentaurScores.Attributes;
+using CentaurScores.Model;
 using CentaurScores.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -96,6 +97,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{participantId}/scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<ParticipantModel>> UpdateParticipantForMatch([FromRoute] int id, [FromRoute] int participantId, [FromBody] ParticipantModel participant)
         {
             return await matchRepository.UpdateParticipantForMatch(id, participantId, participant);
@@ -110,6 +112,7 @@ namespace CentaurScores.Controllers
         [HttpDelete("{participantId}/scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<int>> DeleteParticipantForMatch([FromRoute] int id, [FromRoute] int participantId)
         {
             return await matchRepository.DeleteParticipantForMatch(id, participantId);
@@ -124,6 +127,7 @@ namespace CentaurScores.Controllers
         [HttpPost("scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
         public async Task<ActionResult<ParticipantModel>> CreateParticipantForMatch([FromRoute] int id, [FromBody] ParticipantModel participant)
         {
             return await matchRepository.CreateParticipantForMatch(id, participant);
