@@ -133,6 +133,23 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
+        /// Deleted a single personal best list entry by ID.
+        /// </summary>
+        /// <param name="memberListId">The parent participant list ID.</param>
+        /// <param name="personalBestListId">The ID of the list.</param>
+        /// <param name="memberId">The ID of the record that is to be updated.</param>
+        /// <param name="model">The new metadata model.</param>
+        /// <returns>The updated model.</returns>
+        [HttpDelete("{personalBestListId}/members/{memberId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
+        public async Task<ActionResult<int>> DeletePersonalBestListEntry([FromRoute] int memberListId, [FromRoute] int personalBestListId, [FromRoute] int memberId)
+        {
+            return await personalBestService.DeletePersonalBestListEntry(memberListId, personalBestListId, memberId);
+        }
+
+        /// <summary>
         /// Add a new personal best record to a list.
         /// </summary>
         /// <param name="memberListId">The parent participant list ID.</param>

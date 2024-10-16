@@ -61,5 +61,6 @@ namespace CentaurScores.Services
         /// <param name="model"></param>
         /// <returns></returns>
         Task<UserACLModel> UpdateACL(ClaimsPrincipal loggedInUser, UserACLModel model);
+        Task<UserModel> UpdatePassword(ClaimsPrincipal loggedInUser, UserModel model);
     }
 }

@@ -69,6 +69,17 @@ namespace CentaurScores.Controllers
         }
 
         /// <summary>
+        /// Updates a user's password.
+        /// </summary>
+        /// <returns></returns>
+        [HttpPut("password")]
+        [Authorize]
+        public async Task<ActionResult<UserModel>> UpdatePassword(UserModel model)
+        {
+            return await authorizationService.UpdatePassword(HttpContext.User, model);
+        }
+
+        /// <summary>
         /// Updates an ACL.
         /// </summary>
         /// <returns></returns>
