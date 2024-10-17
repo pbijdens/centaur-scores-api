@@ -4,6 +4,7 @@ using CentaurScores.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.OpenApi.Validations;
 using Mysqlx.Session;
 using Newtonsoft.Json;
@@ -23,102 +24,111 @@ namespace CentaurScores.Services
         /// <inheritdoc/>
         public async Task<List<NewPersonalBestModel>> CalculateUpdatedRecords(int memberListId)
         {
+            using var db = new CentaurScoresDbContext(configuration);
+
             List<NewPersonalBestModel> allUpdatedPersonalBestsWithDuplicates = [];
 
             List<RulesetModel> rulesets = await GetRulesets();
-            using var db = new CentaurScoresDbContext(configuration);
-            ParticipantListEntity participantList =
-                await db.ParticipantLists
-                    .AsNoTracking()
-                    .Include(pp => pp.PersonalBestLists)
-                        .ThenInclude(pbl => pbl.Entries)
-                            .ThenInclude(pbl => pbl.Participant)
-                    .Include(pp => pp.Competitions)
-                        .ThenInclude(c => c.Matches)
-                            .ThenInclude(m => m.Participants)
-                    .FirstOrDefaultAsync(x => x.Id == memberListId)
-                ?? throw new ArgumentException("Bad ID", nameof(memberListId));
-            foreach (CompetitionEntity competition in participantList.Competitions.ToList())
-            {
-                foreach (MatchEntity match in competition.Matches.ToList())
-                {
-                    RulesetModel? ruleset = rulesets.FirstOrDefault(rs => rs.Code == match.RulesetCode);
-                    if (null != ruleset)
-                    {
-                        List<NewPersonalBestModel> resultForMatch = CalculateUpdatedPersonalBestEntriesForMatch(participantList, competition, match, ruleset);
-                        allUpdatedPersonalBestsWithDuplicates.AddRange(resultForMatch);
-                    }
-                }
-            }
+            IQueryable<PersonalBestsListEntity> pbls = db.ParticipantLists.AsNoTracking().Include(pl => pl.PersonalBestLists).Where(pl => pl.Id == memberListId).SelectMany(pl => pl.PersonalBestLists);
+            List<int?> pblIDs = pbls.Select(x => x.Id).Distinct().ToList().ToList();
+            List<string> competitionFormats = pbls.Select(x => x.CompetitionFormat).Distinct().ToList();
+            List<string> rulesetCodes = rulesets.Where(r => competitionFormats.Contains(r.CompetitionFormat)).Select(r => r.Code).ToList();
 
-            List<NewPersonalBestModel> result = allUpdatedPersonalBestsWithDuplicates
-                .GroupBy(x => x.ListId)
-                .SelectMany(listGroup =>
-                    listGroup
-                        .GroupBy(x => $"{x.Participant.Id}-{x.Discipline}")
-                        .Select(group => group.OrderByDescending(e => e.Score).First()))
+            Dictionary<string, string> rulesetToCf = [];
+            rulesets.ForEach(r => rulesetToCf[r.Code] = r.CompetitionFormat);
+            var registeredParticipants =
+                    from matchParticipant in db.Participants.AsNoTracking().Include(p => p.Match).ThenInclude(m => m.Competition)
+                    from participantListEntry in db.ParticipantListEntries.AsNoTracking().Include(ple => ple.List)
+                        .Where(pl => pblIDs.Contains(pl.List.Id))
+                        .Where(pl => matchParticipant.ParticipantListEntryId == pl.Id)
+                    select new
+                    {
+                        MatchId = matchParticipant.Match.Id,
+                        matchParticipant.Match.MatchCode,
+                        matchParticipant.Match.MatchName,
+                        CompetitionId = matchParticipant.Match.Competition!.Id,
+                        CompetitionName = matchParticipant.Match.Competition!.Name,
+                        matchParticipant.Score,
+                        matchParticipant.ParticipantListEntryId,
+                        matchParticipant.Match.RulesetCode,
+                        matchParticipant.Match.GroupsJSON,
+                        DisciplineCode = matchParticipant.Group,
+                        participantListEntry.Name,
+                    };
+
+
+            // This is difficult to read, but the easy to readversion had terrible performance
+            var updatedPersonalBestRecords =
+                 (from registeredParticipant in registeredParticipants
+                  from personalBestListEntry in db.PersonalBestListEntries.AsNoTracking().Include(pble => pble.List).ThenInclude(pbl => pbl.ParticipantList)
+                      .Where(pble => registeredParticipant.ParticipantListEntryId == pble.Participant.Id)
+                      .DefaultIfEmpty()
+                  select new
+                  {
+                      registeredParticipant.ParticipantListEntryId,
+                      PersonalBestListEntry = personalBestListEntry,
+                      registeredParticipant.Score,
+                      PersonalBestScore = personalBestListEntry.Score,
+                      PersonalBestDiscipline = personalBestListEntry.Discipline,
+                      PersonalBestListId = personalBestListEntry.List.Id,
+                      registeredParticipant.MatchCode,
+                      registeredParticipant.MatchName,
+                      registeredParticipant.CompetitionId,
+                      registeredParticipant.CompetitionName,
+                      registeredParticipant.DisciplineCode,
+                      registeredParticipant.RulesetCode,
+                      registeredParticipant.GroupsJSON,
+                      registeredParticipant.MatchId,
+                      registeredParticipant.Name,
+                  })
+                 .Where(x => x.Score > x.PersonalBestScore)
+                 .ToList()
+                 .Where(x => (x.PersonalBestListEntry.List?.CompetitionFormat ?? "") == rulesetToCf[x.RulesetCode ?? ""])
+                 .Where(x => (JsonConvert.DeserializeObject<GroupInfo[]>(x.GroupsJSON) ?? []).Any(y => y.Code == x.DisciplineCode && y.Label == x.PersonalBestDiscipline))
+                 .Select(x => new NewPersonalBestModel
+                 {
+                     Id = x.PersonalBestListEntry?.Id ?? -1,
+                     Achieved = DateFromMatchCode(new MatchEntity { MatchCode = x.MatchCode, MatchName = x.MatchName }),
+                     Competition = new CompetitionModel { Id = x.CompetitionId, Name = x.CompetitionName },
+                     Discipline = x.PersonalBestDiscipline,
+                     ListId = x.PersonalBestListId ?? -1,
+                     Match = new MatchModel { Id = x.MatchId ?? -1, MatchName = x.MatchName, MatchCode = x.MatchCode },
+                     Notes = $"Automatisch toegevoegd op basis van {x.MatchName} / {x.MatchCode}",
+                     Participant = new ParticipantListMemberModel { Id = x.ParticipantListEntryId, Name = x.Name },
+                     PreviousScore = x.PersonalBestScore,
+                     Score = x.Score
+                 })
+                 .ToList();
+
+            var newlyRequiredPersonalBestRecords =
+                registeredParticipants.ToList().Select(registeredParticipant => new
+                {
+                    PD = registeredParticipant,
+                    Discipline = (JsonConvert.DeserializeObject<GroupInfo[]>(registeredParticipant.GroupsJSON) ?? []).FirstOrDefault(r => r.Code == registeredParticipant.DisciplineCode)?.Label ?? "",
+                    ListID = db.PersonalBestLists.AsNoTracking().FirstOrDefault(x => x.CompetitionFormat == rulesetToCf[registeredParticipant.RulesetCode ?? ""])?.Id ?? -1
+                })
+                .Where(matchResult => matchResult.ListID >= 0)
+                .Where(matchResult => !db.PersonalBestListEntries.Include(pble => pble.List).AsNoTracking().Any(pble => pble.Discipline == matchResult.Discipline && pble.List.CompetitionFormat == rulesetToCf[matchResult.PD.RulesetCode ?? ""] && pble.Participant.Id == matchResult.PD.ParticipantListEntryId))
+                .Select(x => new NewPersonalBestModel
+                {
+                    Id = -1,
+                    Achieved = DateFromMatchCode(new MatchEntity { MatchCode = x.PD.MatchCode, MatchName = x.PD.MatchName }),
+                    Competition = new CompetitionModel { Id = x.PD.CompetitionId, Name = x.PD.CompetitionName },
+                    Discipline = x.Discipline,
+                    ListId = x.ListID,
+                    Match = new MatchModel { Id = x.PD.MatchId ?? -1, MatchName = x.PD.MatchName, MatchCode = x.PD.MatchCode },
+                    Notes = $"Automatisch toegevoegd op basis van {x.PD.MatchName} / {x.PD.MatchCode}",
+                    Participant = new ParticipantListMemberModel { Id = x.PD.ParticipantListEntryId, Name = x.PD.Name },
+                    PreviousScore = 0,
+                    Score = x.PD.Score
+                })
                 .ToList();
 
-            return result;
-        }
-
-        private static List<NewPersonalBestModel> CalculateUpdatedPersonalBestEntriesForMatch(ParticipantListEntity participantList, CompetitionEntity competition, MatchEntity match, RulesetModel ruleset)
-        {
-            List<NewPersonalBestModel> result = [];
-
-            List<GroupInfo> allClasses = JsonConvert.DeserializeObject<List<GroupInfo>>(match.GroupsJSON) ?? [];
-
-            string competitionFormat = ruleset.CompetitionFormat.ToString();
-            List<PersonalBestsListEntity> applicableBestLists = participantList.PersonalBestLists.Where(pbl => pbl.CompetitionFormat == competitionFormat).ToList();
-            foreach (ParticipantEntity participant in match.Participants.Where(e => e.ParticipantListEntryId != null).ToList())
-            {
-                int score = participant.Score;
-
-                string discipline = allClasses.FirstOrDefault(x => x.Code == participant.Group)?.Label ?? "Onbekend";
-                ;
-                // Find all existing PBL entries for the applicable lists with a lower score
-                List<PersonalBestsListEntryEntity> entriesThatHaveBeenImprovedUpon = applicableBestLists
-                    .SelectMany(x => x.Entries)
-                    .Where(e => e.Score < score && e.Participant?.Id != null && e.Participant?.Id == participant.ParticipantListEntryId && e.Discipline == discipline)
-                    .ToList();
-
-                result.AddRange(entriesThatHaveBeenImprovedUpon.Select(
-                    e => new NewPersonalBestModel()
-                    {
-                        ListId = e.List.Id ?? -1,
-                        Achieved = DateFromMatchCode(match),
-                        Competition = competition.ToMetadataModel(),
-                        Score = score,
-                        Discipline = e.Discipline,
-                        Id = e.Id,
-                        Match = match.ToModel(),
-                        Participant = e.Participant.ToModel(),
-                        Notes = $"{match.MatchCode} - {match.MatchName}",
-                        PreviousScore = e.Score
-                    }
-                    ));
-
-                List<PersonalBestsListEntity> listsThatParticipantIsNotInShouldBeNow =
-                    applicableBestLists.Where(x => !(x.Entries.Any(e => e.Participant?.Id == participant.ParticipantListEntryId && e.Discipline == discipline)))
-                    .ToList();
-
-                result.AddRange(listsThatParticipantIsNotInShouldBeNow.Select(
-                    e => new NewPersonalBestModel()
-                    {
-                        ListId = e.Id ?? -1,
-                        Achieved = DateFromMatchCode(match),
-                        Competition = competition.ToMetadataModel(),
-                        Score = score,
-                        Discipline = allClasses.FirstOrDefault(s => s.Code == participant.Group)?.Label ?? "Onbekend",
-                        Id = null,
-                        Match = match.ToModel(),
-                        Participant = new() { Id = participant.ParticipantListEntryId, Name = participant.Name },
-                        Notes = $"{match.MatchCode} - {match.MatchName}",
-                    }
-                    ));
-            }
-
-            return result;
+            return updatedPersonalBestRecords
+                .Concat(newlyRequiredPersonalBestRecords)
+                .OrderBy(x => x.Participant.Name)
+                    .ThenBy(x => x.Discipline)
+                .ToList();
         }
 
         private static string DateFromMatchCode(MatchEntity match)

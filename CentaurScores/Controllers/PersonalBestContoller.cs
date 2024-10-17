@@ -138,7 +138,6 @@ namespace CentaurScores.Controllers
         /// <param name="memberListId">The parent participant list ID.</param>
         /// <param name="personalBestListId">The ID of the list.</param>
         /// <param name="memberId">The ID of the record that is to be updated.</param>
-        /// <param name="model">The new metadata model.</param>
         /// <returns>The updated model.</returns>
         [HttpDelete("{personalBestListId}/members/{memberId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
