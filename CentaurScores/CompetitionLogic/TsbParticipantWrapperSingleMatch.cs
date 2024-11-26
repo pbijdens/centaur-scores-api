@@ -48,6 +48,10 @@ namespace CentaurScores.CompetitionLogic
         /// </summary>
         public double PrPerArrowAverage = 0.0;
         /// <summary>
+        /// Average score per arrow, calculated over all arrows actually shot.
+        /// </summary>
+        public double PerArrowAverage = 0.0;
+        /// <summary>
         /// Personal best.
         /// </summary>
         public int Pr = 0;
