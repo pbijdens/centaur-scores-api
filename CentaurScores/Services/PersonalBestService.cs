@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Validations;
 using Mysqlx.Session;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -38,6 +39,7 @@ namespace CentaurScores.Services
             rulesets.ForEach(r => rulesetToCf[r.Code] = r.CompetitionFormat);
             var registeredParticipants =
                     from matchParticipant in db.Participants.AsNoTracking().Include(p => p.Match).ThenInclude(m => m.Competition)
+                        .Where(mp => mp.Match != null && mp.Match.Competition != null && mp.Match.Competition.ParticipantList != null && mp.Match.Competition.ParticipantList.Id == memberListId)
                     from participantListEntry in db.ParticipantListEntries.AsNoTracking().Include(ple => ple.List)
                         .Where(pl => pblIDs.Contains(pl.List.Id))
                         .Where(pl => matchParticipant.ParticipantListEntryId == pl.Id)

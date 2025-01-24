@@ -51,6 +51,11 @@
         public int PrScore { get; set; } = 0;
 
         /// <summary>
+        /// Average score for the PR
+        /// </summary>
+        public double PrAverage { get; set; }
+
+        /// <summary>
         /// If a tiebraker was needed to determing mutual position for this record, this line needs to be
         /// printed on the results-list.
         /// </summary>

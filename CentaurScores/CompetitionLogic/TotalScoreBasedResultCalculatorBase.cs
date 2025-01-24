@@ -263,6 +263,7 @@ namespace CentaurScores.CompetitionLogic
                     PerArrowAverage = pi.PerArrowAverage,
                     PrPerArrowAverage = pi.PrPerArrowAverage,
                     PrScore = pi.Pr,
+                    PrAverage = ((match?.ArrowsPerEnd ?? 0) * (match?.NumberOfEnds ?? 0)) == 0 ? 0.0 : (1.0 * pi.Pr / ((match?.ArrowsPerEnd ?? 1.0) * (match?.NumberOfEnds ?? 1.0))),
                     ScoreInfo = [ new ScoreInfoEntry {
                         IsDiscarded = false,
                         NumberOfArrows = (match == null || match.ArrowsPerEnd <= 0 || match.NumberOfEnds <= 0) ? 0 : (match.ArrowsPerEnd * match.NumberOfEnds),
