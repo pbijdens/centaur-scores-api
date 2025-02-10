@@ -504,5 +504,42 @@ namespace CentaurScores.Services
             }
             return false;
         }
+
+        /// <inheritdoc/>
+        public async Task<string?> GetMatchUiSetting(int id, string name)
+        {
+            using var db = new CentaurScoresDbContext(configuration);
+            db.Database.EnsureCreated();
+
+            string cleanName = Regex.Replace(name, "[^0-9a-z]", "_", RegexOptions.IgnoreCase);
+
+            CsSetting? setting = await db.Settings.FirstOrDefaultAsync(x => x.Name == $"CsUi-Match{id}-{cleanName}");
+            return JsonConvert.DeserializeObject<string>(setting?.JsonValue ?? "") ?? "null";
+        }
+
+
+        /// <inheritdoc/>
+        public async Task<string?> UpdateMatchUiSetting(int id, string name, string value)
+        {
+            using var db = new CentaurScoresDbContext(configuration);
+            db.Database.EnsureCreated();
+
+            string cleanName = Regex.Replace(name, "[^0-9a-z]", "_", RegexOptions.IgnoreCase);
+            string jsonEncodedValue = JsonConvert.SerializeObject(value);
+
+            CsSetting? setting = await db.Settings.FirstOrDefaultAsync(x => x.Name == $"CsUi-Match{id}-{cleanName}");
+            if (null == setting)
+            {
+                setting = new CsSetting { Name = $"CsUi-Match{id}-{cleanName}", JsonValue = jsonEncodedValue };
+                db.Add(setting);
+                await db.SaveChangesAsync();
+            }
+            else
+            {
+                setting.JsonValue = jsonEncodedValue;
+                await db.SaveChangesAsync();
+            }
+            return value;
+        }
     }
 }

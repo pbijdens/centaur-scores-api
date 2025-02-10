@@ -142,5 +142,34 @@ namespace CentaurScores.Controllers
             await matchRepository.ClearRemotelyChangedFlag(matchId: id);
             return 0;
         }
+
+        /// <summary>
+        /// Updates the current value for this UI setting.
+        /// </summary>
+        /// <param name="id">Match ID or -1 for default</param>
+        /// <param name="name">Name of the setting</param>
+        /// <param name="value">Value of the setting</param>
+        /// <returns>Current value or null</returns>
+        [HttpPut("{id}/setting/{name}/value/{value}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<string?>> PutMatchUiSetting([FromRoute] int id, [FromRoute] string name, [FromRoute] string value)
+        {
+            return await matchRepository.UpdateMatchUiSetting(id, name, value);
+        }
+
+        /// <summary>
+        /// Returns the current value for this UI setting.
+        /// </summary>
+        /// <param name="id">Match ID or -1 for default</param>
+        /// <param name="name">Name of the setting</param>
+        /// <returns>Current value or null</returns>
+        [HttpGet("{id}/setting/{name}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<string?>> GetMatchUiSetting([FromRoute] int id, [FromRoute] string name)
+        {
+            return await matchRepository.GetMatchUiSetting(id, name);
+        }
     }
 }

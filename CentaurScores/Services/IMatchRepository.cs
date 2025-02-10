@@ -75,6 +75,24 @@ namespace CentaurScores.Services
         /// <param name="id"></param>
         /// <returns></returns>
         Task<MatchModel> GetMatch(int id);
+
+        /// <summary>
+        /// Get a UI setting value for a specific match, or match -1 for lthe default live viuw
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        Task<string?> GetMatchUiSetting(int id, string name);
+
+        /// <summary>
+        /// Update a UI setting value for a specific match, or match -1 for lthe default live viuw
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        Task<string?> UpdateMatchUiSetting(int id, string name, string value);
+
         /// <summary>
         /// Return a single participant info structure in the context of a match.
         /// </summary>
