@@ -157,7 +157,7 @@ namespace CentaurScores.CompetitionLogic
             // Create a list of all single arrow scores  that were actually achieved in the match (may be empty, may skip some values)
             List<int> allArrowValues = [.. participants.SelectMany(x => x.Ends.SelectMany(y => y.Arrows.Select(a => a ?? 0))).Distinct().OrderByDescending(x => x)];
             // Pre-populate the tiebreaker dictionaries for all participants
-            PrePopulateTiebreakerDictionariesForAllParticipants(participants, allArrowValues);
+            PrePopulateWrapperAndTiebreakerDictionariesForAllParticipants(participants, allArrowValues);
 
             MatchResultModel result = new()
             {
@@ -260,6 +260,7 @@ namespace CentaurScores.CompetitionLogic
                     // If consecutive records have the exact same score and tiebreakers won't work, 
                     Position = index + 1,
                     Score = pi.Score,
+                    Scores = pi.Scores,
                     PerArrowAverage = pi.PerArrowAverage,
                     PrPerArrowAverage = pi.PrPerArrowAverage,
                     PrScore = pi.Pr,
@@ -268,6 +269,7 @@ namespace CentaurScores.CompetitionLogic
                         IsDiscarded = false,
                         NumberOfArrows = (match == null || match.ArrowsPerEnd <= 0 || match.NumberOfEnds <= 0) ? 0 : (match.ArrowsPerEnd * match.NumberOfEnds),
                         Score = pi.Score,
+                        Scores = pi.Scores,
                         Info = string.Empty
                     }],
                 };
@@ -299,11 +301,19 @@ namespace CentaurScores.CompetitionLogic
             return await Task.FromResult(result);
         }
 
-        private static void PrePopulateTiebreakerDictionariesForAllParticipants(List<TsbParticipantWrapperSingleMatch> participants, List<int> allArrowValues)
+        private static void PrePopulateWrapperAndTiebreakerDictionariesForAllParticipants(List<TsbParticipantWrapperSingleMatch> participants, List<int> allArrowValues)
         {
             foreach (TsbParticipantWrapperSingleMatch wrapper in participants)
             {
+                int ends = wrapper.Ends.Count();
                 wrapper.Score = wrapper.Ends.Sum(x => x.Score ?? 0); // sum of all ends
+                if (ends > 10 && ends % 10 == 0)
+                {
+                    for (int i = 0; i < ends / 10; i++)
+                    {
+                        wrapper.Scores.Add(wrapper.Ends.Skip(10 * i).Take(10).Sum(x => x.Score ?? 0));
+                    }
+                }
                 foreach (int arrow in allArrowValues) wrapper.Tiebreakers[arrow] = 0;
                 foreach (var end in wrapper.Ends)
                 {

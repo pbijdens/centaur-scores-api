@@ -34,6 +34,10 @@ namespace CentaurScores.CompetitionLogic
         /// </summary>
         public int Score = 0;
         /// <summary>
+        /// Sum of all arrows in all ends.
+        /// </summary>
+        public List<int> Scores = [];
+        /// <summary>
         /// Tiebreaker scores, count of each arrow value.
         /// </summary>
         public Dictionary<int, int> Tiebreakers = [];

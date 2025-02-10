@@ -1,4 +1,5 @@
-﻿namespace CentaurScores.Model
+﻿
+namespace CentaurScores.Model
 {
     /// <summary>
     /// Entry indicating a single score for a match, plus how the score should be treated.
@@ -21,5 +22,10 @@
         /// If non-empty should be rendered.
         /// </summary>
         public string Info { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Score components of the score, typically grouped by 10 arrows.
+        /// </summary>
+        public List<int> Scores { get; set; } = [];
     }
 }

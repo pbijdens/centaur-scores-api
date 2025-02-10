@@ -1,4 +1,5 @@
-﻿namespace CentaurScores.Model
+﻿
+namespace CentaurScores.Model
 {
     /// <summary>
     /// Single line in the match result for a participant.
@@ -60,5 +61,10 @@
         /// printed on the results-list.
         /// </summary>
         public string TiebreakerInfo { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The score components, if any. Relevant for matches of 30+ arrows, grouping per 10
+        /// </summary>
+        public List<int> Scores { get; set; } = [];
     }
 }
