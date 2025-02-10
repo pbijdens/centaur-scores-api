@@ -141,12 +141,17 @@ namespace CentaurScores.Services
         }
 
         /// <inheritdoc/>
-        public async Task<List<CompetitionModel>> GetCompetitions()
+        public async Task<List<CompetitionModel>> GetCompetitions(int? listId)
         {
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
 
-            var result = (await db.Competitions.Include(x => x.ParticipantList).OrderByDescending(x => x.StartDate).ThenBy(x => x.Name).ToListAsync())
+            var result = (await db.Competitions
+                    .Include(x => x.ParticipantList)
+                    .Where(x => listId == null || (x.ParticipantList != null && x.ParticipantList.Id == listId))
+                    .OrderByDescending(x => x.StartDate)
+                    .ThenBy(x => x.Name)
+                    .ToListAsync())
                 .Select(x => x.ToMetadataModel())
                 .ToList();
             return result;

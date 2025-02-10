@@ -19,9 +19,10 @@ namespace CentaurScores.Controllers
         /// </summary>
         /// <returns>All available rulesets.</returns>
         [HttpGet()]
+        [HttpGet("/list/{listId}/rulesets")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<RulesetModel>>> GetRulesets()
+        public async Task<ActionResult<List<RulesetModel>>> GetRulesets(int? listId)
         {
             return await competitionRepository.GetRulesets();
         }

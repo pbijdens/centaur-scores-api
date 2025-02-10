@@ -157,7 +157,7 @@ namespace CentaurScores.Services
         }
 
         /// <inheritdoc/>
-        public async Task<List<MatchModel>> FindMatches()
+        public async Task<List<MatchModel>> FindMatches(int? listId)
         {
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
@@ -165,7 +165,7 @@ namespace CentaurScores.Services
             int activeID = await FetchActiveID(db);
             List<MatchEntity> entities = await db.Matches.AsNoTracking()
                 .Include(x => x.Competition)
-                .Where(entity => entity.Competition != null)
+                .Where(entity => entity.Competition != null && (listId == null || (entity.Competition.ParticipantList != null && entity.Competition.ParticipantList.Id == listId)))
                 .OrderBy(entity => entity.Competition!.Name)
                 .OrderByDescending(entity => entity.MatchCode)
                 .ToListAsync();

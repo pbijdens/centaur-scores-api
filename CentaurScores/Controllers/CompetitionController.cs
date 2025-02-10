@@ -19,11 +19,12 @@ namespace CentaurScores.Controllers
         /// </summary>
         /// <returns>All competitions</returns>
         [HttpGet()]
+        [HttpGet("/list/{listId}/competitions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<CompetitionModel>>> GetCompetitions()
+        public async Task<ActionResult<List<CompetitionModel>>> GetCompetitions(int? listId)
         {
-            return await competitionRepository.GetCompetitions();
+            return await competitionRepository.GetCompetitions(listId);
         }
 
         /// <summary>

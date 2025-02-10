@@ -63,7 +63,7 @@ namespace CentaurScores.Services
         /// Get all matches using a weird verb that suggests the result is filtered but it's not.
         /// </summary>
         /// <returns></returns>
-        Task<List<MatchModel>> FindMatches();
+        Task<List<MatchModel>> FindMatches(int? listId);
         /// <summary>
         /// Returns the actrive match or null if none.
         /// </summary>

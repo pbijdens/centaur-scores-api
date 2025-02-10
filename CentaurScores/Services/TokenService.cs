@@ -103,7 +103,7 @@ namespace CentaurScores.Services
                 {
                     Subject = new ClaimsIdentity([new Claim(IdClaim, $"{account.Id}")]),
                     Claims = new Dictionary<string, object>(claims.Select(a => new KeyValuePair<string, object>(a.Key, a.Value))),
-                    Expires = DateTime.UtcNow.AddMinutes(60),
+                    Expires = DateTime.UtcNow.AddMinutes(150),
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
                 };
                 return tokenHandler.CreateToken(tokenDescriptor);

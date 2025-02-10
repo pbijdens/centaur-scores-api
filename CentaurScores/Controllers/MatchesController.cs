@@ -22,11 +22,12 @@ namespace CentaurScores.Controllers
         /// </summary>
         /// <returns>All matches in the system</returns>
         [HttpGet()]
+        [HttpGet("/list/{listId}/match")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<MatchModel>>> GetMatches()
+        public async Task<ActionResult<List<MatchModel>>> GetMatches(int? listId)
         {
-            return await matchRepository.FindMatches();
+            return await matchRepository.FindMatches(listId);
         }
 
         /// <summary>

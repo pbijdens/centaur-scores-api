@@ -30,7 +30,7 @@ namespace CentaurScores.Services
         /// Get all competitions/
         /// </summary>
         /// <returns></returns>
-        Task<List<CompetitionModel>> GetCompetitions();
+        Task<List<CompetitionModel>> GetCompetitions(int? listId);
         /// <summary>
         /// Get all supported rulesets
         /// </summary>
