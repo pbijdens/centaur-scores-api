@@ -1,4 +1,6 @@
-﻿using CentaurScores.Services;
+﻿using CentaurScores.Attributes;
+using CentaurScores.Model;
+using CentaurScores.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CentaurScores.Controllers
@@ -9,9 +11,8 @@ namespace CentaurScores.Controllers
     /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("admin")]
-    public class AdminController(IDatabaseServices databaseServices, IConfiguration configuration) : ControllerBase
+    public class AdminController(IDatabaseServices databaseServices, IConfiguration configuration, IConfigurationRepository configurationRepository) : ControllerBase
     {
-
         /// <summary>
         /// Request a backup of the MySQL database. Configure the secret in the "BackupSecret" in the AppSettings for the service.
         /// </summary>
@@ -28,6 +29,30 @@ namespace CentaurScores.Controllers
                 "text/plain", 
                 $"centaur-scores-db-backup-{now.Year}-{now.Month}-{now.Day}.sql",
                 false);
+        }
+
+        /// <summary>
+        /// Returns a configuration value given the spoecified key. Anonymoud access is allowed here.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        [HttpGet("config/{key}")]
+        public async Task<string?> GetConfiguration([FromRoute] string key)
+        {
+            return await configurationRepository.GetValue(key);
+        }
+
+        /// <summary>
+        /// Updates a configuration setting. Requiires a logged-in user.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("config/{key}")]
+        [Authorize]
+        public async Task<bool> GetConfiguration([FromRoute] string key, [FromBody] ConfigurationRequestModel model)
+        {
+            return await configurationRepository.SetValue(key, model.Value);
         }
     }
 }
