@@ -14,8 +14,8 @@ namespace CentaurScores.Controllers
     /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("match")]
-    public class MatchesController(IMatchRepository matchRepository,
-        ICompetitionRepository competitionRepository)
+    public class MatchesController(IMatchRepository matchRepository
+        , ICompetitionService competitionService)
     {
         /// <summary>
         /// Returns the list of all matches in the system.
@@ -124,7 +124,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<MatchResultModel>> GetMatchResults([FromRoute] int id)
         {
-            MatchResultModel? result = await competitionRepository.CalculateSingleMatchResult(matchId: id);
+            MatchResultModel? result = await competitionService.CalculateSingleMatchResult(matchId: id);
             if (null == result) throw new ArgumentException("Bad match ID", nameof(id));
             return result;
         }

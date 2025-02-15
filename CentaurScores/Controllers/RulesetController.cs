@@ -10,7 +10,7 @@ namespace CentaurScores.Controllers
     /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("/rulesets")]
-    public class RulesetController(ICompetitionRepository competitionRepository)
+    public class RulesetController(ICompetitionService competitionService)
     {
         /// <summary>
         /// Returns all available pre-defined rulesets for this software. A ruleset is a group of match types and
@@ -24,7 +24,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<RulesetModel>>> GetRulesets(int? listId)
         {
-            return await competitionRepository.GetRulesets();
+            return await competitionService.GetRulesets();
         }
     }
 }

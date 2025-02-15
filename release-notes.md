@@ -1,3 +1,13 @@
+# Version 1.1.9
+
+Date: 15/2/2025
+
+## Re-structuring and additional documentation
+
+Restructured the application so the services and calculations are no longer part of the ASP.net project.
+
+Will enable creating a Windows Service later for quicker installation.
+
 # Version 1.1.7
 
 Date: 10/2/2025

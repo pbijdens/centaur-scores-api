@@ -11,7 +11,7 @@ namespace CentaurScores.Controllers
     /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("/competitions")]
-    public class CompetitionController(ICompetitionRepository competitionRepository)
+    public class CompetitionController(ICompetitionRepository competitionRepository, ICompetitionService competitionService)
     {
 
         /// <summary>
@@ -94,7 +94,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<CompetitionResultModel>> GetCompetitionResults([FromRoute] int competitionId)
         {
-            CompetitionResultModel? result = await competitionRepository.CalculateCompetitionResult(competitionId);
+            CompetitionResultModel? result = await competitionService.CalculateCompetitionResult(competitionId);
             if (null == result) throw new ArgumentException("Bad competition ID", nameof(competitionId));
             return result;
         }
