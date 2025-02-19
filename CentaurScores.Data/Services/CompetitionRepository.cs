@@ -77,6 +77,9 @@ namespace CentaurScores.Services
                         MatchCode = m.MatchCode,
                         MatchName = m.MatchName,
                         RulesetCode = m.RulesetCode,
+                        MatchFlags = m.MatchFlags,
+                        ActiveRound = m.ActiveRound,
+                        NumberOfRounds = m.NumberOfRounds,
                         IsActive = m.Id == activeId,
                     }).ToList();
                 }

@@ -2,7 +2,9 @@
 using CentaurScores.Persistence;
 using CentaurScores.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using System.Configuration;
 using System.Linq;
 
 
@@ -20,20 +22,51 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
     /// </remarks>
     /// <typeparam name="TmatchComparer">A class that contains the logic to compare two TsbParticipantWrapperSingleMatch typed objects to each other to determine which scores best.</typeparam>
     /// <typeparam name="TcompetitionComparer">A class that contains  the logic to compare two TsbParticipantWrapperCompetition typed objects to each other to determine which scores best.</typeparam>
-    public abstract class TotalScoreBasedResultCalculatorBase<TmatchComparer, TcompetitionComparer>
+    public abstract class TotalScoreBasedResultCalculatorBase<TmatchComparer, TcompetitionComparer>(IConfiguration configuration)
+        : IRuleService
         where TmatchComparer : IComparer<TsbParticipantWrapperSingleMatch>, new()
         where TcompetitionComparer : IComparer<TsbParticipantWrapperCompetition>, new()
     {
         /// <summary>
         /// By default only the best 4 scores (per Ruleset Code) are used to calculate the total competito result.
         /// </summary>
-        protected int RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 4; // TODO: LOAD FROM MATCH CONFIGURATION IN DB ENTYRY
+        protected int RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 5; // TODO: LOAD FROM MATCH CONFIGURATION IN DB ENTYRY
 
         /// <summary>
         /// Request suppoerted rulesets to be returned.
         /// </summary>
         /// <returns></returns>
         public abstract Task<List<RulesetModel>> GetSupportedRulesets();
+
+        /// <see cref="IRuleService.CalculateCompetitionResult(int)"></see>
+        public virtual async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)
+        {
+            using CentaurScoresDbContext db = new(configuration);
+            var result = await CalculateCompetitionResultForDB(db, competitionId);
+            return result;
+        }
+
+        /// <see cref="IRuleService.CalculateSingleMatchResult(int)"></see>
+        public virtual async Task<MatchResultModel> CalculateSingleMatchResult(int matchId)
+        {
+            using CentaurScoresDbContext db = new(configuration);
+            var result = await CalculateSingleMatchResultForDB(db, matchId);
+            return result;
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> SupportsMatch(MatchEntity matchEntity)
+        {
+            List<RulesetModel> supportedRulesets = await GetSupportedRulesets();
+            return supportedRulesets.Any(x => x.Code == matchEntity.RulesetCode && (matchEntity.MatchFlags & MatchEntity.MatchFlagsHeadToHead) == 0); // does not support any final rounds
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> SupportsCompetition(CompetitionEntity competitionEntity)
+        {
+            List<RulesetModel> supportedRulesets = await GetSupportedRulesets();
+            return (supportedRulesets.Any(x => competitionEntity.RulesetGroupName != null && x.GroupName == competitionEntity.RulesetGroupName));
+        }
 
         /// <summary>
         /// Implements all logic required to calculate a competition result for all matches that have been played sofar
@@ -162,6 +195,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             {
                 Name = match.MatchName,
                 Code = match.MatchCode,
+                Flags = match.MatchFlags,
                 Ruleset = match.RulesetCode ?? string.Empty,
                 Groups = allClasses,
                 Subgroups = allSubclasses,
@@ -336,8 +370,8 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                 {
                     TsbParticipantWrapperSingleMatch pp = new()
                     {
-                        Participant = x.ToModel(),
-                        ParticipantData = x.ToModel().ToData(),
+                        Participant = x.ToModel(activeRound: 0),
+                        ParticipantData = x.ToModel(activeRound: 0).ToData(),
                         Ends = [],
                         DisciplineCode = x.Group,
                         AgeGroupCode = x.Subgroup,

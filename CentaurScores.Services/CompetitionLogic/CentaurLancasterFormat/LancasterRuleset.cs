@@ -39,29 +39,11 @@ namespace CentaurScores.CompetitionLogic.CentaurLancasterFormat
                     RequiredScoreValues = RulesetConstants.KeyboardsLancasterFinale
                 },
             ];
-        private readonly IConfiguration configuration;
 
         /// <summary>Constructor</summary>
-        public LancasterRuleset(IConfiguration configuration)
+        public LancasterRuleset(IConfiguration configuration) : base(configuration)
         {
-            this.configuration = configuration;
             RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = int.MaxValue;
-        }
-
-        /// <see cref="IRuleService"/>
-        public async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)
-        {
-            using CentaurScoresDbContext db = new(configuration);
-            var result = await CalculateCompetitionResultForDB(db, competitionId);
-            return result;
-        }
-
-        /// <see cref="IRuleService"/>
-        public async Task<MatchResultModel> CalculateSingleMatchResult(int matchId)
-        {
-            using CentaurScoresDbContext db = new(configuration);
-            var result = await CalculateSingleMatchResultForDB(db, matchId);
-            return result;
         }
 
         /// <see cref="IRuleService"/>

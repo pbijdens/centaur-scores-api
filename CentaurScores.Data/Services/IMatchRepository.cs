@@ -103,8 +103,9 @@ namespace CentaurScores.Services
         /// Get all participants for a mcth.
         /// </summary>
         /// <param name="id"></param>
+        /// <param name="round">Optional round, used for getting data for previous rounds of the current (h2h) match</param>
         /// <returns></returns>
-        Task<List<ParticipantModelV2>> GetParticipantsForMatch(int id);
+        Task<List<ParticipantModelV2>> GetParticipantsForMatch(int id, int? round = null);
         /// <summary>
         /// Gets a participant array for using it on a device, i.e. including one empty record for each unused lijn.
         /// </summary>
@@ -144,5 +145,12 @@ namespace CentaurScores.Services
         /// <param name="match"></param>
         /// <returns></returns>
         Task<int> UpdateParticipantsForMatch(int id, string deviceID, List<ParticipantModel> match);
+        /// <summary>
+        /// Update the h2h info for this participant.
+        /// </summary>
+        /// <param name="participant"></param>
+        /// <param name="info"></param>
+        /// <returns></returns>
+        Task UpdateParticipantHeadToHeadInfo(ParticipantModel participant, HeadToHeadInfoEntry[] info);
     }
 }

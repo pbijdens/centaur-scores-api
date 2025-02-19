@@ -66,6 +66,7 @@ builder.Services.AddTransient<IPersonalBestService, PersonalBestService>();
 builder.Services.AddTransient<IDatabaseServices, MySQLDatabaseService>();
 builder.Services.AddTransient<IAuthorizationService, AuthorizationService>();
 builder.Services.AddTransient<ICompetitionService, CompetitionService>();
+builder.Services.AddTransient<IFinalsService, FinalsService>();
 builder.Services.AddHttpClient();
 
 builder.AddCompetitionTypes();

@@ -1,5 +1,6 @@
 ﻿using CentaurScores.CompetitionLogic.CentaurCompetition;
 using CentaurScores.CompetitionLogic.CentaurLancasterFormat;
+using CentaurScores.CompetitionLogic.Head2HeadKnockoutFinals;
 using CentaurScores.CompetitionLogic.StandardCompetition;
 using CentaurScores.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ namespace CentaurScores.CompetitionLogic
             hostApplicationBuilder.Services.AddSingleton<IRuleService, LancasterRuleset>();
             hostApplicationBuilder.Services.AddSingleton<IRuleService, Indoor3pRuleset>();
             hostApplicationBuilder.Services.AddSingleton<IRuleService, Indoor25m1pRuleset>();
+            hostApplicationBuilder.Services.AddSingleton<IRuleService, Head2HeadKnockoutResultCalculator>();
         }
     }
 }

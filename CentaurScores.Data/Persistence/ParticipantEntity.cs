@@ -46,6 +46,10 @@ namespace CentaurScores.Persistence
         /// </summary>
         public int Score { get; set; }
         /// <summary>
+        /// Contains the head to head match information in a JSON-encoded array per round.
+        /// </summary>
+        public string HeadToHeadJSON { get; set; } = "[]";
+        /// <summary>
         /// All ends as JSON.
         /// </summary>
         public string EndsJSON { get; set; } = string.Empty;
@@ -54,13 +58,14 @@ namespace CentaurScores.Persistence
         /// </summary>
         public int? ParticipantListEntryId { get; set; } = null;
 
-        public ParticipantModel ToModel()
+        public ParticipantModel ToModel(int activeRound)
         {
             return new()
             {
                 Id = Id ?? -1,
-                Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? [],
+                Ends = (JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? []).Where(x => x.Round == activeRound).ToList(),
                 Score = Score,
+                HeadToHeadJSON = HeadToHeadJSON,
                 Group = Group,
                 Lijn = Lijn,
                 Name = Name,
@@ -71,13 +76,14 @@ namespace CentaurScores.Persistence
             };
         }
 
-        public ParticipantModelV2 ToModelV2(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets)
+        public ParticipantModelV2 ToModelV2(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets, int activeRound)
         {
             return new()
             {
                 Id = Id ?? -1,
-                Ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? [],
+                Ends = (JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? []).Where(x => x.Round == activeRound).ToList(),
                 Score = Score,
+                HeadToHeadJSON = HeadToHeadJSON,
                 Group = Group,
                 Lijn = Lijn,
                 Name = Name,
@@ -91,13 +97,36 @@ namespace CentaurScores.Persistence
             };
         }
 
-        public void UpdateFromModel(ParticipantModel data)
+        public ParticipantModelV3 ToModelV3(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets, int activeRound)
+        {
+            return new()
+            {
+                Id = Id ?? -1,
+                Ends = (JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? []).Where(x => x.Round == activeRound).ToList(),
+                Score = Score,
+                HeadToHeadJSON = HeadToHeadJSON,
+                Group = Group,
+                Lijn = Lijn,
+                Name = Name,
+                Subgroup = Subgroup,
+                Target = Target,
+                DeviceID = DeviceID,
+                ParticipantListEntryId = ParticipantListEntryId,
+                GroupName = (groups ?? []).FirstOrDefault(e => e.Code == Group)?.Label,
+                SubgroupName = (subgroups ?? []).FirstOrDefault(e => e.Code == Subgroup)?.Label,
+                TargetName = (targets ?? []).FirstOrDefault(e => e.Code == Target)?.Label,
+                H2HInfo = (JsonConvert.DeserializeObject<List<HeadToHeadInfoEntry>>(HeadToHeadJSON ?? "[]") ?? []),
+            };
+        }
+
+        public void UpdateFromModel(int activeRound, ParticipantModel data)
         {
             Name = data.Name;
             Group = data.Group;
             Subgroup = data.Subgroup;
             Target = data.Target;
             Score = data.Score;
+            // Not updating HeadToHeadJSON, this gets its own endpoint
             // When intentionally clearing this, set it to -1
             if (null != data.ParticipantListEntryId)
             {
@@ -107,7 +136,12 @@ namespace CentaurScores.Persistence
             {
                 Lijn = data.Lijn;
             }
-            EndsJSON = JsonConvert.SerializeObject(data.Ends);
+
+            // Only update the ends for the currently active roud of the match. The other ends are not updated at all.
+            List<EndModel> ends = JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? [];
+            ends.RemoveAll(e => e.Round == activeRound);
+            ends.AddRange(data.Ends.Select(e => { e.Round = activeRound; return e; }));
+            EndsJSON = JsonConvert.SerializeObject(ends);
         }
     }
 }

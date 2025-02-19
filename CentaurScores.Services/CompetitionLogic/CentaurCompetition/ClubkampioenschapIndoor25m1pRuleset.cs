@@ -26,29 +26,11 @@ namespace CentaurScores.CompetitionLogic.CentaurCompetition
                     RequiredScoreValues = RulesetConstants.Keyboards25M
                 },
             ];
-        private readonly IConfiguration configuration;
 
         /// <summary>Constructor</summary>
-        public ClubkampioenschapIndoor25m1pRuleset(IConfiguration configuration)
+        public ClubkampioenschapIndoor25m1pRuleset(IConfiguration configuration) : base(configuration)
         {
-            this.configuration = configuration;
             RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 5;
-        }
-
-        /// <see cref="IRuleService.CalculateCompetitionResult(int)"></see>
-        public async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)
-        {
-            using CentaurScoresDbContext db = new(configuration);
-            var result = await CalculateCompetitionResultForDB(db, competitionId);
-            return result;
-        }
-
-        /// <see cref="IRuleService.CalculateSingleMatchResult(int)"></see>
-        public async Task<MatchResultModel> CalculateSingleMatchResult(int matchId)
-        {
-            using CentaurScoresDbContext db = new(configuration);
-            var result = await CalculateSingleMatchResultForDB(db, matchId);
-            return result;
         }
 
         /// <see cref="IRuleService.GetSupportedRulesets()"></see>

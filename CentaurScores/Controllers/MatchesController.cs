@@ -15,7 +15,8 @@ namespace CentaurScores.Controllers
     [ApiController]
     [Route("match")]
     public class MatchesController(IMatchRepository matchRepository
-        , ICompetitionService competitionService)
+        , ICompetitionService competitionService
+        , IFinalsService finalsService)
     {
         /// <summary>
         /// Returns the list of all matches in the system.
@@ -170,6 +171,70 @@ namespace CentaurScores.Controllers
         public async Task<ActionResult<string?>> GetMatchUiSetting([FromRoute] int id, [FromRoute] string name)
         {
             return await matchRepository.GetMatchUiSetting(id, name);
+        }
+
+        /// <summary>
+        /// Creates a new match in the matches list using a match definition object and a previous match.
+        /// </summary>
+        /// <param name="id">The match ID that was used as a template.</param>
+        /// <param name="match">The metadata for the new match.</param>
+        /// <returns>A copy of the created model with the new ID.</returns>
+        [HttpPost("{id}/finals")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
+        public async Task<ActionResult<MatchModel>> CreateFinalsMatch([FromRoute] int id, [FromBody] FinalMatchDefinition match)
+        {
+            return await finalsService.CreateFromMatch(id, match);
+        }
+
+        /// <summary>
+        /// Creates a new match in the matches list using a match definition object and a previous match.
+        /// </summary>
+        /// <param name="id">The match ID that was used as a template.</param>
+        /// <returns>A copy of the created model with the new ID.</returns>
+        [HttpPost("{id}/finals/nextround")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
+        public async Task<ActionResult<bool>> CreateFinalsNextRound([FromRoute] int id)
+        {
+            await finalsService.GotoNextRound(id);
+            return true;
+        }
+
+        /// <summary>
+        /// Creates a new match in the matches list using a match definition object and a previous match.
+        /// </summary>
+        /// <param name="id">The match ID that was used as a template.</param>
+        /// <returns>A copy of the created model with the new ID.</returns>
+        [HttpPost("{id}/finals/nextround/undo")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
+        public async Task<ActionResult<bool>> CreateFinalsPrevRound([FromRoute] int id)
+        {
+            await finalsService.GotoPreviousRound(id);
+            return true;
+        }
+
+        /// <summary>
+        /// Creates a new match in the matches list using a match definition object and a previous match.
+        /// </summary>
+        /// <param name="id">The match ID that was used as a template.</param>
+        /// <param name="bracket">Bracket ID</param>
+        /// <param name="discipline">Discipline code</param>
+        /// <param name="winner">Winner participant ID</param>
+        /// <param name="loser">Loser participant ID</param>
+        /// <returns>A copy of the created model with the new ID.</returns>
+        [HttpPut("{id}/finals/win/{discipline}/{bracket}/{winner}/{loser}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
+        public async Task<ActionResult<bool>> UpdateFinalsBracketWinner([FromRoute] int id, [FromRoute] string discipline, [FromRoute] int bracket, [FromRoute] int winner, [FromRoute] int loser)
+        {
+            await finalsService.UpdateFinalsBracketWinner(id, discipline, bracket, winner, loser);
+            return true;
         }
     }
 }

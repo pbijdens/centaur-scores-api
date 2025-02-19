@@ -72,5 +72,20 @@ namespace CentaurScores.Model
         /// Not used.
         /// </summary>
         public bool ChangedRemotely { get; set; } = false;
+        
+        /// <summary>
+        /// Flags for this match.
+        /// </summary>
+        public uint MatchFlags { get; set; } = 0;
+
+        /// <summary>
+        /// Currently active round for this match. Only relevant for multi-round matches, 1-based index.
+        /// </summary>
+        public int ActiveRound { get; set; } = 0;
+
+        /// <summary>
+        /// The number of rounds in the match
+        /// </summary>
+        public int NumberOfRounds {  get; set; } = 4;
     }
 }

@@ -65,7 +65,7 @@ namespace CentaurScores.Persistence
             {
                 throw new InvalidOperationException("Please configure the CentaurScoresDatabase connection string.");
             }
-            optionsBuilder.UseMySQL(connectionString);
+            optionsBuilder.UseMySQL(connectionString, o => { o.MigrationsAssembly("CentaurScores"); });
         }
 
         /// <inheritdoc/>
@@ -80,6 +80,9 @@ namespace CentaurScores.Persistence
                 entity.Property(e => e.MatchCode).IsRequired();
                 entity.Property(e => e.MatchName).IsRequired();
                 entity.HasMany(e => e.Participants).WithOne(p => p.Match).OnDelete(DeleteBehavior.Cascade);
+                entity.Property(e => e.MatchFlags).HasDefaultValue(0).IsRequired();
+                entity.Property(e => e.ActiveRound).HasDefaultValue(0).IsRequired();
+                entity.Property(e => e.NumberOfRounds).HasDefaultValue(4).IsRequired();
             });
 
             modelBuilder.Entity<ParticipantEntity>(entity =>
@@ -89,6 +92,7 @@ namespace CentaurScores.Persistence
                 entity.Property(e => e.DeviceID).IsRequired();
                 entity.Property(e => e.Lijn).IsRequired();
                 entity.Property(e => e.EndsJSON).IsRequired();
+                entity.Property(e => e.HeadToHeadJSON);
             });
 
             modelBuilder.Entity<CsSetting>(entity =>

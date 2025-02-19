@@ -43,6 +43,16 @@
         /// <summary>
         /// Match scores by position from high to low, grouped by class and subclass.
         /// </summary>
-        public Dictionary<string, Dictionary<string, List<MatchScoreForParticipant>>> BySubclass { get; set; } = [];        
+        public Dictionary<string, Dictionary<string, List<MatchScoreForParticipant>>> BySubclass { get; set; } = [];
+
+        /// <summary>
+        /// Match scores by group, then by round number
+        /// </summary>
+        public Dictionary<string, Dictionary<int, List<HeadToHeadScore>>> FinalScores { get; set; } = [];
+
+        /// <summary>
+        /// Flags for the match.
+        /// </summary>
+        public uint Flags { get; set; }
     }
 }

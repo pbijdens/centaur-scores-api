@@ -11,6 +11,9 @@ namespace CentaurScores.Persistence
     /// </summary>
     public class MatchEntity
     {
+        public const uint MatchFlagsNone = 0x0000;
+        public const uint MatchFlagsHeadToHead = 0x0001;
+
         /// <summary>Key</summary>
         public int? Id { get; set; }
 
@@ -79,6 +82,26 @@ namespace CentaurScores.Persistence
         /// </summary>
         public bool? ChangedRemotely {  get; set; } = false;
 
+        /// <summary>
+        /// Can be used to tweak properties of this match, for example to make this a final. The interpretation
+        /// of the flags is partly up to the competition score calculation module.
+        /// </summary>
+        public uint MatchFlags { get; set; } = MatchFlagsNone;
+
+        /// <summary>
+        /// Currently active round for this match, only relevant for matches where multiple rounds are
+        /// available. Can be used to split a single match into multiple rounds, provided the score
+        /// calculator can merge these rounds again. Initially only used for finals.
+        /// </summary>
+        public int ActiveRound { get; set; } = 0;
+
+        /// <summary>
+        /// Currently active round for this match, only relevant for matches where multiple rounds are
+        /// available. Can be used to split a single match into multiple rounds, provided the score
+        /// calculator can merge these rounds again. Initially only used for finals.
+        /// </summary>
+        public int NumberOfRounds {  get; set; } = 4;
+
         public MatchModel ToModel()
         {
             return new()
@@ -98,6 +121,9 @@ namespace CentaurScores.Persistence
                 RulesetCode = RulesetCode,
                 Competition = Competition?.ToMetadataModel(),
                 ChangedRemotely = ChangedRemotely ?? false,
+                MatchFlags = MatchFlags,
+                ActiveRound = ActiveRound,
+                NumberOfRounds = NumberOfRounds,
             };
         }
     }

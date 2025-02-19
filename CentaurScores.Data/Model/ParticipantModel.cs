@@ -56,6 +56,10 @@ namespace CentaurScores.Model
         /// linked to the competition that this match is part of.
         /// </summary>
         public int? ParticipantListEntryId { get; set; } = null;
+        /// <summary>
+        /// Participant has been declared the winner of the match.
+        /// </summary>
+        public string HeadToHeadJSON { get; set; } = "[]";
 
         /// <summary>
         /// Converts the record into a ParticipantData record for result-calculation.
@@ -65,7 +69,7 @@ namespace CentaurScores.Model
         {
             return new ParticipantData
             {
-                Id = (!ParticipantListEntryId.HasValue || ParticipantListEntryId.Value < 0) ? -1 : ParticipantListEntryId.Value,
+                Id = Id,
                 Name = Name,
                 Group = Group,
                 Subgroup = Subgroup

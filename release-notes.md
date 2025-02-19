@@ -1,6 +1,26 @@
+# Version 1.1.10
+
+Date: 2025-02-19
+
+## Head to head knockout finals
+
+Added support for head to head knockout finals. For this additional endpoints were added to the atches controller: ```POST /match/{id}/finals``` to create a final match from an existing match, ```POST /match/{id}/finals/nextround``` to progresss a final to the next round, ```POST /match/{id}/finals/nextround/undo``` to undo progressing to the next round and ```PUT /match/{id}/finals/win/{discipline}/{bracket}/{winner}/{loser}``` to register a result for a single round in a knock-out finals.
+
+In addition, to the ```MatchResultModel``` data structure, a member for ```FinalScores``` was added, that in case of a knock out final type match will contain information about the brackets and round scores for current, previous and next rounds. The active round and number of rounds can be get (and set) in the match propertlies.
+
+The ```ParticipantModel``` classes have been extended with H2HInfo and HeadToHeadJSON members that can be used to access all ehad to head round information for all participants ot a match. This data can't be updated using the regular endpoints, but will be updated as a side-effect of specific head-to-head endpoints only.
+
+Finals are always ignored when creating personal best lists.
+
+Otherwise, all regular endpoints basically work as expected for finals, so also the number of ends and arrows per end can be configured as expected.
+
+## Internal changes for competition and match results
+
+The ```IRuleService``` has been updated to implement two new endpoints ```SupportsMatch``` and ```SupportsCompetition```. This enables creating multiple rule services for the same match or competition types, for example for supporting knock-out finals only.
+
 # Version 1.1.9
 
-Date: 15/2/2025
+Date: 2025-02-15
 
 ## Re-structuring and additional documentation
 
@@ -10,7 +30,7 @@ Will enable creating a Windows Service later for quicker installation.
 
 # Version 1.1.7
 
-Date: 10/2/2025
+Date: 2025-02-10
 
 ## Updated endpoints (1)
 

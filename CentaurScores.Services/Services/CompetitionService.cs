@@ -20,8 +20,7 @@ namespace CentaurScores.Services
             CompetitionEntity foundCompetitionEntity = await db.Competitions.FirstOrDefaultAsync(x => x.Id == competitionId) ?? throw new ArgumentException("Bad competition ID", nameof(competitionId));
             foreach (var service in ruleServices)
             {
-                List<RulesetModel> supportedRulesets = await service.GetSupportedRulesets();
-                if (supportedRulesets.Any(x => foundCompetitionEntity.RulesetGroupName != null && x.GroupName == foundCompetitionEntity.RulesetGroupName))
+                if (await service.SupportsCompetition(foundCompetitionEntity))
                 {
                     applicableRuleService = service;
                     break;
@@ -57,8 +56,7 @@ namespace CentaurScores.Services
             MatchEntity foundMatchEntity = await db.Matches.FirstOrDefaultAsync(x => x.Id == id) ?? throw new ArgumentException("Bad match ID", nameof(id));
             foreach (var service in ruleServices)
             {
-                List<RulesetModel> supportedRulesets = await service.GetSupportedRulesets();
-                if (supportedRulesets.Any(x => x.Code == foundMatchEntity.RulesetCode))
+                if (await service.SupportsMatch(foundMatchEntity))
                 {
                     applicableRuleService = service;
                     break;

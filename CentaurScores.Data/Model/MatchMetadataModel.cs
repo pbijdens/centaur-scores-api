@@ -25,5 +25,20 @@
         /// True if this is the active match, false otherwise.
         /// </summary>
         public bool IsActive { get; set; } = false;
+        /// <summary>
+        /// Flags that define the match properties.
+        /// </summary>
+        public uint MatchFlags { get; set; } = 0;
+        /// <summary>
+        /// When this is a multi-part round such as a final, one of the rounds is currently active. All scores are
+        /// registered for that round only, and all tablet interaction is only for that round.
+        /// </summary>
+        public int ActiveRound { get; set; } = 0;
+        /// <summary>
+        /// Currently active round for this match, only relevant for matches where multiple rounds are
+        /// available. Can be used to split a single match into multiple rounds, provided the score
+        /// calculator can merge these rounds again. Initially only used for finals.
+        /// </summary>
+        public int NumberOfRounds { get; set; } = 4;
     }
 }

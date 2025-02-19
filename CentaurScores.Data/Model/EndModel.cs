@@ -17,5 +17,9 @@
         /// Ordered list of all arrows for an end, null if not shot, the arrow score otherwise.
         /// </summary>
         public List<int?> Arrows { get; set; } = [];
+        /// <summary>
+        /// The round for which this score is registered. Should automatically be set to the active round.
+        /// </summary>
+        public int Round { get; set; } = 0;
     }
 }

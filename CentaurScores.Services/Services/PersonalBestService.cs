@@ -32,9 +32,10 @@ namespace CentaurScores.Services
 
             Dictionary<string, string> rulesetToCf = [];
             rulesets.ForEach(r => rulesetToCf[r.Code] = r.CompetitionFormat);
+            // only considering matcehes that have not been identified as head to head matches
             var registeredParticipants =
                     from matchParticipant in db.Participants.AsNoTracking().Include(p => p.Match).ThenInclude(m => m.Competition)
-                        .Where(mp => mp.Match != null && mp.Match.Competition != null && mp.Match.Competition.ParticipantList != null && mp.Match.Competition.ParticipantList.Id == memberListId)
+                        .Where(mp => mp.Match != null && mp.Match.Competition != null && mp.Match.Competition.ParticipantList != null && mp.Match.Competition.ParticipantList.Id == memberListId && (mp.Match.MatchFlags & MatchEntity.MatchFlagsHeadToHead) == 0)
                     from participantListEntry in db.ParticipantListEntries.AsNoTracking().Include(ple => ple.List)
                         .Where(pl => pblIDs.Contains(pl.List.Id))
                         .Where(pl => matchParticipant.ParticipantListEntryId == pl.Id)
