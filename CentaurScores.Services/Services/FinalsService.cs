@@ -159,8 +159,8 @@ namespace CentaurScores.Services
 
             foreach (GroupInfo group in groups)
             {
-
-                for (int bracketNo = 1; bracketNo <= Math.Pow(2, matchEntity.ActiveRound); bracketNo += 2)
+                double numberOfBracketsThisRound = Math.Pow(2, matchEntity.NumberOfRounds - matchEntity.ActiveRound);
+                for (int bracketNo = 1; bracketNo <= numberOfBracketsThisRound; bracketNo += 2)
                 {
                     ParticipantModelV3? p1 = participantsInThisRound.SingleOrDefault(p => p.H2HInfo[matchEntity.ActiveRound - 1].Bracket == bracketNo && p.H2HInfo[matchEntity.ActiveRound - 1].Position == 0 && p.Group == group.Code);
                     ParticipantModelV3? p2 = participantsInThisRound.SingleOrDefault(p => p.H2HInfo[matchEntity.ActiveRound - 1].Bracket == bracketNo && p.H2HInfo[matchEntity.ActiveRound - 1].Position == 1 && p.Group == group.Code);
