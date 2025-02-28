@@ -228,7 +228,8 @@ namespace CentaurScores.Services
                 entities = await db.Participants.AsNoTracking().Where(x => x.Match.Id == id).OrderBy(entity => entity.Name).ToListAsync();
                 entities = entities.Where(e => {
                     var h2h = JsonConvert.DeserializeObject<List<HeadToHeadInfoEntry>>(e.HeadToHeadJSON ?? "[]");
-                    return h2h != null && h2h.Count >= (round.HasValue ? round : match.ActiveRound);
+                    bool result = h2h != null && h2h.Count >= (round.HasValue ? round : match.ActiveRound);
+                    return result;
                 }).ToList();
             }
             else
@@ -236,12 +237,19 @@ namespace CentaurScores.Services
                 entities = await db.Participants.AsNoTracking().Where(x => x.Match.Id == id).OrderBy(entity => entity.Name).ToListAsync();
             }
 
-            List<ParticipantModelV2> result = entities.Select(x => x.ToModelV2(groups, subgroups, targets, match.ActiveRound)).ToList();
+            List<ParticipantModelV3> result = entities.Select(x => x.ToModelV3(groups, subgroups, targets, match.ActiveRound)).ToList();
             result.ForEach(x =>
             {
                 AutoFixParticipantModel(match.ToModel(), x);
             });
-            return result;
+            if ((match.MatchFlags & MatchEntity.MatchFlagsHeadToHead) == MatchEntity.MatchFlagsHeadToHead) 
+            {
+                result = [.. result
+                    .OrderBy(x => x.Group)
+                    .ThenBy(x => x.H2HInfo.Count >= match.ActiveRound ? x.H2HInfo[match.ActiveRound - 1].InitialPosition : -1)
+                    .ThenBy(x => x.Name)];
+            }
+            return [.. result.OfType<ParticipantModelV2>()];
         }
 
         /// <inheritdoc/>
