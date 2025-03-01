@@ -1,3 +1,11 @@
+# Version 1.1.12
+
+Date: 2025-03-01
+
+## Custom finals
+
+Added support for creating customized finals.
+
 # Version 1.1.10
 
 Date: 2025-02-19
