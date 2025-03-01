@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -209,7 +210,7 @@ namespace CentaurScores.Services
         }
 
         /// <inheritdoc/>
-        public async Task<List<ParticipantModelV2>> GetParticipantsForMatch(int id, int? round = null)
+        public async Task<List<ParticipantModelV3>> GetParticipantsForMatch(int id, int? round = null)
         {
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
@@ -226,7 +227,8 @@ namespace CentaurScores.Services
             {
                 // Head to head match: return only participants that take part in the current round, all other participants are dead to us.
                 entities = await db.Participants.AsNoTracking().Where(x => x.Match.Id == id).OrderBy(entity => entity.Name).ToListAsync();
-                entities = entities.Where(e => {
+                entities = entities.Where(e =>
+                {
                     var h2h = JsonConvert.DeserializeObject<List<HeadToHeadInfoEntry>>(e.HeadToHeadJSON ?? "[]");
                     bool result = h2h != null && h2h.Count >= (round.HasValue ? round : match.ActiveRound);
                     return result;
@@ -242,14 +244,14 @@ namespace CentaurScores.Services
             {
                 AutoFixParticipantModel(match.ToModel(), x);
             });
-            if ((match.MatchFlags & MatchEntity.MatchFlagsHeadToHead) == MatchEntity.MatchFlagsHeadToHead) 
+            if ((match.MatchFlags & MatchEntity.MatchFlagsHeadToHead) == MatchEntity.MatchFlagsHeadToHead)
             {
                 result = [.. result
                     .OrderBy(x => x.Group)
-                    .ThenBy(x => x.H2HInfo.Count >= match.ActiveRound ? x.H2HInfo[match.ActiveRound - 1].InitialPosition : -1)
+                    .ThenBy(x => x.H2HInfo.Count >= match.ActiveRound ? x.H2HInfo[Math.Max(0, match.ActiveRound - 1)].InitialPosition : -1)
                     .ThenBy(x => x.Name)];
             }
-            return [.. result.OfType<ParticipantModelV2>()];
+            return [.. result.OfType<ParticipantModelV3>()];
         }
 
         /// <inheritdoc/>
@@ -459,6 +461,8 @@ namespace CentaurScores.Services
 
             MatchEntity matchEntity = await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid match ID", nameof(id));
 
+            bool isHeadToHead = (matchEntity.MatchFlags & MatchEntity.MatchFlagsHeadToHead) != 0;
+
             ParticipantEntity participantEntity = new()
             {
                 Match = matchEntity,
@@ -467,11 +471,78 @@ namespace CentaurScores.Services
             };
             AutoFixParticipantModel(matchEntity.ToModel(), participantModel);
             participantEntity.UpdateFromModel(matchEntity.ActiveRound, participantModel);
+            if (isHeadToHead) // In a head-to-head match add some metadata to the participant
+            {
+                participantEntity.HeadToHeadJSON = JsonConvert.SerializeObject(new HeadToHeadInfoEntry[] {new HeadToHeadInfoEntry{
+                    InitialPosition = await CalculateNextInitialPositionFor(db, matchEntity, participantModel.Group),
+                    Bracket = 0,
+                    IsSetScored = true,
+                    IsWinner = false,
+                    OpponentId = -1,
+                    Position = -1
+                }});
+            }
             EntityEntry<ParticipantEntity> newEntity = db.Participants.Add(participantEntity);
 
             await db.SaveChangesAsync();
 
             return await GetParticipantForMatch(id, newEntity.Entity.Id ?? -1);
+        }
+
+        /// <inheritdoc/>
+        public async Task MoveParticipant(int id, int participantId, int direction)
+        {
+            using CentaurScoresDbContext db = new(configuration);
+            MatchEntity matchEntity = await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid match ID", nameof(id));
+
+
+            GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.GroupsJSON ?? "[]") ?? [];
+            GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.SubgroupsJSON ?? "[]") ?? [];
+            GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.TargetsJSON ?? "[]") ?? [];
+
+            bool isHeadToHead = (matchEntity.MatchFlags & MatchEntity.MatchFlagsHeadToHead) != 0;
+
+            List<ParticipantEntity> participants = await db.Participants.Where(p => p.Match.Id == id).ToListAsync();
+            List<ParticipantModelV3> models = participants.Select(p => p.ToModelV3(groups, subgroups, targets, matchEntity.ActiveRound)).OrderBy(p => p.H2HInfo.FirstOrDefault()?.InitialPosition).ToList();
+            int index = models.FindIndex(x => x.Id == participantId);
+
+            // Check if the operation would make sense, otherwise just ignore it
+            if (index == -1 || index + direction < 0 || index + direction >= models.Count)
+            {
+                return;
+            }
+
+            ParticipantEntity p1 = participants.FirstOrDefault(x => x.Id == models[index].Id) ?? throw new InvalidOperationException();
+            ParticipantEntity p2 = participants.FirstOrDefault(x => x.Id == models[index + direction].Id) ?? throw new InvalidOperationException();
+
+            HeadToHeadInfoEntry[] l1 = JsonConvert.DeserializeObject<HeadToHeadInfoEntry[]>(p1.HeadToHeadJSON ?? "[]") ?? throw new InvalidOperationException();
+            HeadToHeadInfoEntry[] l2 = JsonConvert.DeserializeObject<HeadToHeadInfoEntry[]>(p2.HeadToHeadJSON ?? "[]") ?? throw new InvalidOperationException();
+
+            if (l1.Length == 0 || l2.Length == 0)
+            {
+                throw new InvalidOperationException();
+            }
+
+            (l2[0].InitialPosition, l1[0].InitialPosition) = (l1[0].InitialPosition, l2[0].InitialPosition);
+
+            p1.HeadToHeadJSON = JsonConvert.SerializeObject(l1);
+            p2.HeadToHeadJSON = JsonConvert.SerializeObject(l2);
+
+            await db.SaveChangesAsync();
+        }
+
+        private async Task<int> CalculateNextInitialPositionFor(CentaurScoresDbContext db, MatchEntity matchEntity, string group)
+        {
+            List<string> jsons = await db.Participants.Where(p => p.Match.Id == matchEntity.Id).Select(p => p.HeadToHeadJSON).ToListAsync();
+            if (jsons.Count() == 0) return 1;
+            int currentMaximum = jsons
+                .Select(x => JsonConvert.DeserializeObject<HeadToHeadInfoEntry[]>(x))
+                .Where(x => x != null)
+                .Select(x => x?.FirstOrDefault())
+                .Select(x => x?.InitialPosition ?? 0)
+                .ToList()
+                .Max();
+            return currentMaximum + 1;
         }
 
         /// <inheritdoc/>

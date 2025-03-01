@@ -24,6 +24,48 @@ namespace CentaurScores.Services
             MatchModel sourceMatch = await matchRepository.GetMatch(id);
             if (null == sourceMatch) throw new ArgumentException("Invalid match identifier", nameof(id));
 
+            if ((sourceMatch.MatchFlags & MatchEntity.MatchFlagsHeadToHead) != 0)
+            {
+                MatchModel newMatchResult = await StartFromFinalsDefinition(match, sourceMatch);
+                return newMatchResult;
+            }
+            else
+            {
+                MatchModel newMatchResult = await CreateFromRegularMatch(id, match, sourceMatch);
+                return newMatchResult;
+            }
+        }
+
+        // Initializes round 1 for a finals definition
+        private async Task<MatchModel> StartFromFinalsDefinition(FinalMatchDefinition match, MatchModel sourceMatch)
+        {
+            if (null == sourceMatch.Competition) throw new ArgumentException("Invalid match identifier - requires competition", "id");
+            CompetitionModel competition = sourceMatch.Competition;
+
+            if (null == match.Groups || match.Groups.Count == 0) 
+            {
+                throw new ArgumentException("Invalid match definition -- requires groups", "match");
+            }
+
+            // TODO -> MATCH REPO
+            using var db = new CentaurScoresDbContext(configuration);
+            MatchEntity matchEntity = await db.Matches.Include(m => m.Participants).Where(entity => entity.Id == sourceMatch.Id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(sourceMatch));
+            matchEntity.ActiveRound = 1;
+            await db.SaveChangesAsync();
+
+            sourceMatch = matchEntity.ToModel();
+
+            List<ParticipantModelV3> participants = await matchRepository.GetParticipantsForMatch(sourceMatch.Id, 0);
+            await InitializeFinalsBracketsFromOrderedParticipantList(sourceMatch.Id, match, sourceMatch, 
+                (group) => participants.Where(p => p.GroupName == group.Name).Select(p => p.Id).ToList(),
+                (id, sp, p) => { return Task.FromResult(sp); }
+            );
+
+            return sourceMatch;
+        }
+
+        private async Task<MatchModel> CreateFromRegularMatch(int id, FinalMatchDefinition match, MatchModel sourceMatch)
+        {
             if (null == sourceMatch.Competition) throw new ArgumentException("Invalid match identifier - requires competition", nameof(id));
             CompetitionModel competition = sourceMatch.Competition;
 
@@ -64,6 +106,26 @@ namespace CentaurScores.Services
             };
 
             MatchModel newMatchResult = await matchRepository.CreateMatch(newMatch);
+            await InitializeFinalsBracketsFromOrderedParticipantList(id, match, newMatchResult,
+                getParticipantIdsForGroup: (g) => [.. match.Groups.Find(grp => grp.Name == g.Name)?.Participants.Select(p => p.ParticipantData.Id) ?? []],
+                createParticipantModelForMatch: (id, sp, p) => matchRepository.CreateParticipantForMatch(id, p)
+                );
+
+            return newMatchResult;
+        }
+
+        /// <summary>
+        /// Given a match definition and a target match (where the target is a finals match) initializes the target match from an
+        /// ordered list of participant identifiers for each of the groups specified in the match definition. Delegates 
+        /// for fetching the list of participants per group and for 'creating' the participant in the target match allow for either
+        /// using a secondary match to create the finals from, or for simply defining the finals from an already created finals-
+        /// match, ultimately allowing the ad-hoc creation of a finals match definition.
+        /// </summary>
+        private async Task InitializeFinalsBracketsFromOrderedParticipantList(int id, FinalMatchDefinition match, MatchModel newMatchResult, 
+            Func<FinalMatchGroupDefinition, List<int>> getParticipantIdsForGroup, 
+            Func<int, ParticipantModel, ParticipantModel, Task<ParticipantModel>> createParticipantModelForMatch
+            )
+        {
             int groupIndex = 0;
             foreach (FinalMatchGroupDefinition group in match.Groups)
             {
@@ -74,20 +136,22 @@ namespace CentaurScores.Services
                 int[] brackets = [1, 8, 5, 4, 3, 6, 7, 2, 2, 7, 6, 3, 4, 5, 8, 1];
                 (int a, int b)[] positionsForBracket = [(1, 16), (8, 9), (5, 12), (4, 13), (3, 14), (6, 11), (7, 10), (2, 15)];
 
+                var participantsForGroup = getParticipantIdsForGroup(group);
+
                 for (int bracketIndex = 0; bracketIndex < 8; bracketIndex++)
-                {
-                    if (group.Participants.Count >= positionsForBracket[bracketIndex].a)
+                {                    
+                    if (participantsForGroup.Count >= positionsForBracket[bracketIndex].a)
                     {
-                        ParticipantModel sourceParticipant = await matchRepository.GetParticipantForMatch(id, group.Participants[positionsForBracket[bracketIndex].a - 1].ParticipantData.Id);
-                        ParticipantModel participant = InitializeParticipantForFinal(newMatch, groupIndex, sourceParticipant);
-                        bracketDefinitions[bracketIndex].a = await matchRepository.CreateParticipantForMatch(newMatchResult.Id, participant);
+                        ParticipantModel sourceParticipant = await matchRepository.GetParticipantForMatch(id, participantsForGroup[positionsForBracket[bracketIndex].a - 1]);
+                        ParticipantModel participant = InitializeParticipantForFinal(newMatchResult, groupIndex, sourceParticipant);
+                        bracketDefinitions[bracketIndex].a = await createParticipantModelForMatch(newMatchResult.Id, sourceParticipant, participant);
                     }
 
-                    if (group.Participants.Count >= positionsForBracket[bracketIndex].b)
+                    if (participantsForGroup.Count >= positionsForBracket[bracketIndex].b)
                     {
-                        ParticipantModel sourceParticipant = await matchRepository.GetParticipantForMatch(id, group.Participants[positionsForBracket[bracketIndex].b - 1].ParticipantData.Id);
-                        ParticipantModel participant = InitializeParticipantForFinal(newMatch, groupIndex, sourceParticipant);
-                        bracketDefinitions[bracketIndex].b = await matchRepository.CreateParticipantForMatch(newMatchResult.Id, participant);
+                        ParticipantModel sourceParticipant = await matchRepository.GetParticipantForMatch(id, participantsForGroup[positionsForBracket[bracketIndex].b - 1]);
+                        ParticipantModel participant = InitializeParticipantForFinal(newMatchResult, groupIndex, sourceParticipant);
+                        bracketDefinitions[bracketIndex].b = await createParticipantModelForMatch(newMatchResult.Id, sourceParticipant,participant);
                     }
 
                     ParticipantModel? participantA = (bracketDefinitions[bracketIndex].a == null) ? null : bracketDefinitions[bracketIndex].a;
@@ -118,8 +182,6 @@ namespace CentaurScores.Services
                 }
                 groupIndex++;
             }
-
-            return newMatchResult;
         }
 
         private static ParticipantModel InitializeParticipantForFinal(MatchModel newMatch, int groupIndex, ParticipantModel sourceParticipant)
@@ -250,7 +312,7 @@ namespace CentaurScores.Services
                 IsSetScored = model.H2HInfo[matchEntity.ActiveRound - 1].IsSetScored,
                 Position = position,
                 IsWinner = opponentModel == null,
-                OpponentId = opponentModel?.Id ?? -1,                
+                OpponentId = opponentModel?.Id ?? -1,
             });
             await matchRepository.UpdateParticipantHeadToHeadInfo(model, model.H2HInfo.ToArray());
         }
