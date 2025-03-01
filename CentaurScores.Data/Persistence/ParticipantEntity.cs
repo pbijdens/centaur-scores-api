@@ -57,7 +57,7 @@ namespace CentaurScores.Persistence
         /// ID in the participant list for the competition for this archer. Same ID = same archer.
         /// </summary>
         public int? ParticipantListEntryId { get; set; } = null;
-
+        
         public ParticipantModel ToModel(int activeRound)
         {
             return new()

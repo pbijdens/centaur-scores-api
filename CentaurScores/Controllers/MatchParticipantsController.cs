@@ -21,7 +21,7 @@ namespace CentaurScores.Controllers
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<ParticipantModelV2>>> GetParticipantsForMatch([FromRoute] int id)
+        public async Task<ActionResult<List<ParticipantModelV3>>> GetParticipantsForMatch([FromRoute] int id)
         {
             return await matchRepository.GetParticipantsForMatch(id);
         }
@@ -131,6 +131,22 @@ namespace CentaurScores.Controllers
         public async Task<ActionResult<ParticipantModel>> CreateParticipantForMatch([FromRoute] int id, [FromBody] ParticipantModel participant)
         {
             return await matchRepository.CreateParticipantForMatch(id, participant);
+        }
+
+        /// <summary>
+        /// Moves a participant in the specified direction
+        /// </summary>
+        /// <param name="id">The match ID.</param>
+        /// <param name="participantId">Participant to move.</param>
+        /// <param name="relativePosition">Relative position.</param>
+        [HttpPost("{participantId}/move/{relativePosition}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
+        public async Task<ActionResult<bool>> CreateParticipantForMatch([FromRoute] int id, [FromRoute] int participantId, [FromRoute] int relativePosition)
+        {
+            await matchRepository.MoveParticipant(id, participantId, relativePosition);
+            return true;
         }
     }
 }

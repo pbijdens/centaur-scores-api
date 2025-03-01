@@ -228,12 +228,14 @@ namespace CentaurScores.Controllers
         /// <param name="loser">Loser participant ID</param>
         /// <returns>A copy of the created model with the new ID.</returns>
         [HttpPut("{id}/finals/win/{discipline}/{bracket}/{winner}/{loser}")]
+        [HttpPut("{id}/finals/win/{bracket}/{winner}/{loser}")]
+        [HttpPut("{id}/finals/win/{winner}/{loser}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize]
-        public async Task<ActionResult<bool>> UpdateFinalsBracketWinner([FromRoute] int id, [FromRoute] string discipline, [FromRoute] int bracket, [FromRoute] int winner, [FromRoute] int loser)
+        public async Task<ActionResult<bool>> UpdateFinalsBracketWinner([FromRoute] int id, [FromRoute] string? discipline, [FromRoute] int? bracket, [FromRoute] int winner, [FromRoute] int loser)
         {
-            await finalsService.UpdateFinalsBracketWinner(id, discipline, bracket, winner, loser);
+            await finalsService.UpdateFinalsBracketWinner(id, discipline ?? string.Empty, bracket ?? -1, winner, loser);
             return true;
         }
     }

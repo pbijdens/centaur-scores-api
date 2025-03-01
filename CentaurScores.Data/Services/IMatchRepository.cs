@@ -105,7 +105,7 @@ namespace CentaurScores.Services
         /// <param name="id"></param>
         /// <param name="round">Optional round, used for getting data for previous rounds of the current (h2h) match</param>
         /// <returns></returns>
-        Task<List<ParticipantModelV2>> GetParticipantsForMatch(int id, int? round = null);
+        Task<List<ParticipantModelV3>> GetParticipantsForMatch(int id, int? round = null);
         /// <summary>
         /// Gets a participant array for using it on a device, i.e. including one empty record for each unused lijn.
         /// </summary>
@@ -152,5 +152,15 @@ namespace CentaurScores.Services
         /// <param name="info"></param>
         /// <returns></returns>
         Task UpdateParticipantHeadToHeadInfo(ParticipantModel participant, HeadToHeadInfoEntry[] info);
+
+        /// <summary>
+        /// Move the participant the specified number of places down in the list. Will swap positions with
+        /// the participant already there.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="participantId"></param>
+        /// <param name="direction"></param>
+        /// <returns></returns>
+        Task MoveParticipant(int id, int participantId, int direction);
     }
 }

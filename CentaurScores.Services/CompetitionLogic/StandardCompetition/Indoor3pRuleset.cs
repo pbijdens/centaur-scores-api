@@ -93,6 +93,19 @@ namespace CentaurScores.CompetitionLogic.StandardCompetition
                 },
                 new RulesetModel
                 {
+                    CompetitionFormat = RulesetConstants.CompetitionFormat3PFinals,
+                    GroupName = GroupName,
+                    Code = "3pfinals",
+                    Name = "Indoor Finale (3 pijlen)",
+                    RequiredArrowsPerEnd = 3,
+                    RequiredEnds = 5,
+                    RequiredClasses = RulesetConstants.Classes,
+                    RequiredSubclasses = [],
+                    RequiredTargets = [ ..RulesetConstants.Targets18M, ..RulesetConstants.Targets25M ],
+                    RequiredScoreValues = RulesetConstants.KeyboardsBoth
+                },
+                new RulesetModel
+                {
                     CompetitionFormat = RulesetConstants.CompetitionFormatIndoorFun,
                     GroupName = GroupNameFun,
                     Code = "fun",

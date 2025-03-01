@@ -27,6 +27,8 @@ namespace CentaurScores.CompetitionLogic
         public static string CompetitionFormatIndoorLancasterQualifier => "Indoor Lancaster 18m3p, 30 pijlen, 0-11";
         /// <summary></summary>
         public static string CompetitionFormatIndoorLancasterFinals => "Indoor Lancaster 18m3p, 15 pijlen, 0-12";
+        /// <summary></summary>
+        public static string CompetitionFormat3PFinals => "Finaleronde 3 pijlen, 5 Sets/Series";
 
         /// <summary>
         /// Classes that are normally used in AHV Centaur.
@@ -111,6 +113,17 @@ namespace CentaurScores.CompetitionLogic
         public static readonly Dictionary<string, List<ScoreButtonDefinition>> Keyboards18M = new() {
                 { "40CM",       StandardKeyboard1to10 },
                 { "40CMDT",     StandardKeyboard6to10 },
+            };
+
+
+        /// <summary>
+        /// Keyboards for the specified target faces.
+        /// </summary>
+        public static readonly Dictionary<string, List<ScoreButtonDefinition>> KeyboardsBoth = new() {
+                { "40CM",       StandardKeyboard1to10 },
+                { "40CMDT",     StandardKeyboard6to10 },
+                { "60CM",       StandardKeyboard1to10 },
+                { "60CMDT",     StandardKeyboard6to10 },
             };
 
         /// <summary>
