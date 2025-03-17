@@ -1,3 +1,13 @@
+# Version 1.1.14
+
+Date: 2025-03-17
+
+Fixed issue where in finals previous rounds would appear to have a zero-score.
+
+# Version 1.1.13
+
+Version sync
+
 # Version 1.1.12
 
 Date: 2025-03-01

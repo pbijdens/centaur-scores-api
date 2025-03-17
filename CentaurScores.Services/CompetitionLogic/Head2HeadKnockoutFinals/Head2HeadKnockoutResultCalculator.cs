@@ -111,7 +111,7 @@ namespace CentaurScores.CompetitionLogic.Head2HeadKnockoutFinals
             IEnumerable<IGrouping<int, ParticipantModelV3>> brackets = group
                 .Select(p =>
                 {
-                    var model = p.ToModelV3(groups, subgroups, targets, matchEntity.ActiveRound);
+                    var model = p.ToModelV3(groups, subgroups, targets, roundIndex);
                     MatchRepository.AutoFixParticipantModel(matchEntity.ToModel(), model);
                     return model;
                 })
