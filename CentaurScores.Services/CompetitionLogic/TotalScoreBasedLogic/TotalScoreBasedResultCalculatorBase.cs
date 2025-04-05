@@ -189,7 +189,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             // Create a list of all single arrow scores  that were actually achieved in the match (may be empty, may skip some values)
             List<int> allArrowValues = [.. participants.SelectMany(x => x.Ends.SelectMany(y => y.Arrows.Select(a => a ?? 0))).Distinct().OrderByDescending(x => x)];
             // Pre-populate the tiebreaker dictionaries for all participants
-            PrePopulateWrapperAndTiebreakerDictionariesForAllParticipants(participants, allArrowValues);
+            PrePopulateWrapperAndTiebreakerDictionariesForAllParticipants(matchModel, participants, allArrowValues);
 
             MatchResultModel result = new()
             {
@@ -335,18 +335,19 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             return await Task.FromResult(result);
         }
 
-        private static void PrePopulateWrapperAndTiebreakerDictionariesForAllParticipants(List<TsbParticipantWrapperSingleMatch> participants, List<int> allArrowValues)
+        private static void PrePopulateWrapperAndTiebreakerDictionariesForAllParticipants(MatchModel matchModel, List<TsbParticipantWrapperSingleMatch> participants, List<int> allArrowValues)
         {
             foreach (TsbParticipantWrapperSingleMatch wrapper in participants)
             {
                 int ends = wrapper.Ends.Count();
                 wrapper.Score = wrapper.Ends.Sum(x => x.Score ?? 0); // sum of all ends
-                if (ends > 10 && ends % 10 == 0)
+                if (matchModel.ArrowsPerEnd == 3 && matchModel.NumberOfEnds > 10 && matchModel.NumberOfEnds % 10 == 0)
                 {
-                    for (int i = 0; i < ends / 10; i++)
-                    {
-                        wrapper.Scores.Add(wrapper.Ends.Skip(10 * i).Take(10).Sum(x => x.Score ?? 0));
-                    }
+                    CalculateIntermediateResultsPer30Arrows(wrapper, ends);
+                }
+                else if (matchModel.ArrowsPerEnd == 5 && matchModel.NumberOfEnds > 5 && matchModel.NumberOfEnds % 5 == 0)
+                {
+                    CalculateIntermediateResultsPer25Arrows(wrapper, ends);
                 }
                 foreach (int arrow in allArrowValues) wrapper.Tiebreakers[arrow] = 0;
                 foreach (var end in wrapper.Ends)
@@ -356,6 +357,22 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                         wrapper.Tiebreakers[arrow ?? 0] += 1;
                     }
                 }
+            }
+        }
+
+        private static void CalculateIntermediateResultsPer30Arrows(TsbParticipantWrapperSingleMatch wrapper, int ends)
+        {
+            for (int i = 0; i < ends / 10; i++)
+            {
+                wrapper.Scores.Add(wrapper.Ends.Skip(10 * i).Take(10).Sum(x => x.Score ?? 0));
+            }
+        }
+
+        private static void CalculateIntermediateResultsPer25Arrows(TsbParticipantWrapperSingleMatch wrapper, int ends)
+        {
+            for (int i = 0; i < ends / 5; i++)
+            {
+                wrapper.Scores.Add(wrapper.Ends.Skip(5 * i).Take(5).Sum(x => x.Score ?? 0));
             }
         }
 
