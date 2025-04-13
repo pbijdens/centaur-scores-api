@@ -30,6 +30,14 @@ namespace CentaurScores.Model
         /// The total score for the 1 record(s) in the scoreinfo array...
         /// </summary>
         public int Score { get; set; } = 0;
+        /// <summary>
+        /// When using F1-style point scoring, contains the arrow score.
+        /// </summary>
+        public int ArrowScore { get; set; } = 0;
+        /// <summary>
+        /// When using F1-style point scoring, add the score for this week alongside the regular score.
+        /// </summary>
+        public int F1PointScore { get; set; } = 0;
 
         /// <summary>
         /// Average score per arrow.

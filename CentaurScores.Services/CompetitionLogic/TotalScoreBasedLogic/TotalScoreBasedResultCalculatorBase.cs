@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Configuration;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 
 namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
@@ -27,6 +28,9 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         where TmatchComparer : IComparer<TsbParticipantWrapperSingleMatch>, new()
         where TcompetitionComparer : IComparer<TsbParticipantWrapperCompetition>, new()
     {
+        // Point scores for F1 scoring
+        private static readonly int[] F1ScoreArray = [12, 10, 8, 7, 6, 5, 4, 3, 2, 1];
+
         /// <summary>
         /// By default only the best 4 scores (per Ruleset Code) are used to calculate the total competito result.
         /// </summary>
@@ -50,7 +54,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         public virtual async Task<MatchResultModel> CalculateSingleMatchResult(int matchId)
         {
             using CentaurScoresDbContext db = new(configuration);
-            var result = await CalculateSingleMatchResultForDB(db, matchId);
+            var result = await CalculateSingleMatchResultForDB(db, matchId, isCompetition: false);
             return result;
         }
 
@@ -87,10 +91,15 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                                                 .ThenInclude(m => m.Participants)
                                                 .Include(c => c.ParticipantList)
                                                 .ThenInclude(pl => pl!.Entries)
-                                                .SingleAsync(c => c.Id == competitionId)
+                                                .SingleAsync(c => c.Id == competitionId),
             };
 
+            TsbCompetitionParameters competitionSettings = JsonConvert.DeserializeObject<TsbCompetitionParameters>(state.CompetitionEntity.RulesetParametersJSON ?? "{}") ?? new();
+            RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = competitionSettings.ScoringMatchesAsInt;
+            state.UseF1Scoring = competitionSettings.Scoring == "F1";
+
             // Calculate the "single match result" for each of the matches, then group them by ruleset code
+            // sets both score and f1 style points in wrappers
             await PopulateStateSingleMatchResults(db, state);
 
             // Next, build a list of participants, grouping them by name
@@ -114,11 +123,11 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
 
                 // If the participant has more than the required number of scores, discard all extra's
                 // Discarding is done by setting the discarded boolean in the scoreinfo.
-                DiscardExtraScoresForParticipant(wrapper);
+                DiscardExtraScoresForParticipant(state, wrapper);
 
                 // Calculate totals for the non-discarded scores, both per ruleset and ifor the
                 // competition
-                CalculateTotalScores(wrapper);
+                CalculateTotalScores(state, wrapper);
 
                 // The wrappers now contain all data needed to populate the result. We're going to filter
                 // and sort these a couple of times to create our competition results grouped in various
@@ -139,14 +148,14 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             PopulateResultHeadersPerRulesetCode(state, result);
 
             // Add ungrouped results and sort them
-            result.Ungrouped = await SortWrappersUsingCompetitionRules(wrappers);
+            result.Ungrouped = await SortWrappersUsingCompetitionRules(state, wrappers);
 
             IEnumerable<string> groupsWithResults = wrappers.Select(x => x.ParticipantData.Group).Distinct();
             foreach (string groupInfo in groupsWithResults)
             {
                 // Add results for this group and sort them
                 List<TsbParticipantWrapperCompetition> wrappersForThisGroup = wrappers.Where(x => x.ParticipantData.Group == groupInfo).ToList();
-                result.ByClass[groupInfo] = await SortWrappersUsingCompetitionRules(wrappersForThisGroup);
+                result.ByClass[groupInfo] = await SortWrappersUsingCompetitionRules(state, wrappersForThisGroup);
 
                 result.BySubclass[groupInfo] = [];
                 IEnumerable<string> subgroupsWithResults = wrappers.Where(x => x.ParticipantData.Group == groupInfo).Select(x => x.ParticipantData.Subgroup).Distinct();
@@ -154,7 +163,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                 {
                     // Add results for this group and subgroup and sort them
                     List<TsbParticipantWrapperCompetition> wrappersForThisSubgroup = wrappers.Where(x => x.ParticipantData.Group == groupInfo && x.ParticipantData.Subgroup == subgroupInfo).ToList();
-                    result.BySubclass[groupInfo][subgroupInfo] = await SortWrappersUsingCompetitionRules(wrappersForThisSubgroup);
+                    result.BySubclass[groupInfo][subgroupInfo] = await SortWrappersUsingCompetitionRules(state, wrappersForThisSubgroup);
                 }
             }
 
@@ -166,7 +175,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         /// starting at the highest possible score and working our way down. If after this the tie remains, both archers will be on the exact
         /// same spot.
         /// </summary>
-        protected virtual async Task<MatchResultModel> CalculateSingleMatchResultForDB(CentaurScoresDbContext db, int id)
+        protected virtual async Task<MatchResultModel> CalculateSingleMatchResultForDB(CentaurScoresDbContext db, int id, bool isCompetition)
         {
             MatchEntity? match = await db.Matches.AsNoTracking().Include(x => x.Participants).Include(x => x.Competition).FirstOrDefaultAsync(x => x.Id == id);
             if (null == match)
@@ -254,7 +263,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                 }
             });
 
-        }
+        }        
 
         /// <summary>
         /// For a single category in a match, sort all the results.
@@ -267,7 +276,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         protected virtual async Task<List<MatchScoreForParticipant>> SortSingleMatchResult(CentaurScoresDbContext db, List<int> allArrowValues, List<TsbParticipantWrapperSingleMatch> participants, MatchEntity? match)
         {
             TmatchComparer tiebreakingComparer = new();
-            List<MatchScoreForParticipant> result = [];
+            List<MatchScoreForParticipant> result = [];            
 
             participants.ForEach(p =>
             {
@@ -328,6 +337,13 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                     }
                     entry.ScoreInfo[0].Info = entry.ScoreInfo[0].Info.TrimEnd();
                 }
+
+                // Assign a relative point score to the week score and set it both on the entry
+                // and in the single element of the scoreinfo.
+                entry.ArrowScore = entry.Score;
+                entry.ScoreInfo[0].ArrowScore = entry.ScoreInfo[0].Score;
+                entry.F1PointScore = F1ScoreArray[Math.Min(entry.Position - 1, F1ScoreArray.Length - 1)];
+                entry.ScoreInfo[0].F1PointScore = entry.F1PointScore;
 
                 result.Add(entry);
             }
@@ -407,14 +423,15 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             {
                 if (null != matchEntity.Id)
                 {
-                    MatchResultModel matchResult = await CalculateSingleMatchResultForDB(db, matchEntity.Id.Value);
+                    MatchResultModel matchResult = await CalculateSingleMatchResultForDB(db, matchEntity.Id.Value, isCompetition: true);
                     if (!state.MatchResultsByRuleset.ContainsKey(matchEntity.RulesetCode ?? string.Empty)) state.MatchResultsByRuleset[matchEntity.RulesetCode ?? string.Empty] = [];
                     state.MatchResultsByRuleset[matchEntity.RulesetCode ?? string.Empty].Add(matchResult);
                 }
             }
         }
 
-        private static async Task<List<CompetitionScoreForParticipantModel>> SortWrappersUsingCompetitionRules(List<TsbParticipantWrapperCompetition> wrappers)
+        private static async Task<List<CompetitionScoreForParticipantModel>> SortWrappersUsingCompetitionRules(
+            TsbCompetitionCalculationState state, List<TsbParticipantWrapperCompetition> wrappers)
         {
             var comparer = new TcompetitionComparer();
             var sorted = wrappers.OrderByDescending(x => x, comparer).ToList();
@@ -426,7 +443,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                 var pi = sorted[index];
                 List<ScoreInfoEntry> countingMatches = pi.ScoresPerRuleset.SelectMany(kvp => kvp.Value.Where(x => x != null && !x.IsDiscarded)).OfType<ScoreInfoEntry>().ToList();
                 int countingArrows = countingMatches.Sum(x => x.NumberOfArrows);
-                double countingScore = countingMatches.Sum(x => x.Score);
+                double countingScore = countingMatches.Sum(x => x.ArrowScore);
                 CompetitionScoreForParticipantModel entry = new()
                 {
                     ParticipantInfo = $"{pi.ParticipantData.Name}",
@@ -474,10 +491,17 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             }
         }
 
-        private static void CalculateTotalScores(TsbParticipantWrapperCompetition wrapper)
+        private static void CalculateTotalScores(TsbCompetitionCalculationState state, TsbParticipantWrapperCompetition wrapper)
         {
             foreach ((string ruleset, List<ScoreInfoEntry?> scores) in wrapper.ScoresPerRuleset)
             {
+                if (state.UseF1Scoring)
+                {
+                    foreach (ScoreInfoEntry item in scores.OfType<ScoreInfoEntry>())
+                    {
+                        item.Score = item.F1PointScore;
+                    }
+                }
                 wrapper.TotalScoresPerRuleset[ruleset] = scores.Where(s => s != null && !s.IsDiscarded).Select(s => s?.Score ?? 0).Sum();
             }
             wrapper.TotalScore = wrapper.TotalScoresPerRuleset.Values.Sum();
@@ -508,13 +532,23 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             }
         }
 
-        private void DiscardExtraScoresForParticipant(TsbParticipantWrapperCompetition wrapper)
+        private void DiscardExtraScoresForParticipant(TsbCompetitionCalculationState state, TsbParticipantWrapperCompetition wrapper)
         {
             foreach ((string rulesetCode, List<ScoreInfoEntry?> scores) in wrapper.ScoresPerRuleset)
             {
-                foreach (var score in scores.OrderByDescending(x => x?.Score).Skip(RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant))
+                if (state.UseF1Scoring)
                 {
-                    if (null != score) score.IsDiscarded = true;
+                    foreach (var score in scores.OrderByDescending(x => x?.F1PointScore).Skip(RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant))
+                    {
+                        if (null != score) score.IsDiscarded = true;
+                    }
+                }
+                else
+                {
+                    foreach (var score in scores.OrderByDescending(x => x?.Score).Skip(RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant))
+                    {
+                        if (null != score) score.IsDiscarded = true;
+                    }
                 }
             }
         }

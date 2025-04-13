@@ -10,6 +10,14 @@ namespace CentaurScores.Model
         /// </summary>
         public bool IsDiscarded { get; set; } = false;
         /// <summary>
+        /// Assigned points when using F1 scoring.
+        /// </summary>
+        public int F1PointScore { get; set; }
+        /// <summary>
+        /// The score itself.
+        /// </summary>
+        public int ArrowScore { get; set; } = 0;
+        /// <summary>
         /// The score itself.
         /// </summary>
         public int Score { get; set; } = 0;

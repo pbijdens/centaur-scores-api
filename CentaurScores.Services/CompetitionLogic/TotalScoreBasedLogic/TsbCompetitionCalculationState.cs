@@ -20,5 +20,9 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         /// All match results in the competition, grouped by their basic ruleset (e.g. 25m3p / 18m3p)
         /// </summary>
         public Dictionary<string, List<MatchResultModel>> MatchResultsByRuleset { get; set; } = [];
+        /// <summary>
+        /// Use formula-1 scoring per week.
+        /// </summary>
+        public bool UseF1Scoring { get; set; }
     }
 }
