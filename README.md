@@ -148,9 +148,13 @@ sleep 5
 
 DOWNLOAD_URL=$(curl -s https://api.github.com/repos/pbijdens/centaur-scores-api/releases/latest | grep browser_download_url | cut -d '"' -f4)
 DB_SERVER="127.0.0.1"
+DB_PORT=3306
 DB_USER="csuser"
 DB_NAME="CentaurScores"
-DB_PASSWORD="Centaur!123"
+DB_PASSWORD="CentaurSecret!123"
+CS_INITIAL_JWT="Any random string will do, make it unique changethis"
+CS_INITIAL_PASSWORD_HASH="YourCalculatedHashAndSaltChangeThis"
+CS_BACKUP_SECRET="myBackupSecretChangeThis"
 
 useradd --system --home-dir /var/www --no-create-home csuser --shell /usr/sbin/nologin
 mkdir -p /var/www/centaurscoresapi
@@ -193,7 +197,7 @@ cat <<EOT > /var/www/centaurscoresapi/appsettings.Production.json
     }
   },
   "AppSettings": {
-    "Secret": "$CS_INITIAL_PASSWORD_HASH",
+    "Secret": "$CS_INITIAL_JWT",
     "BackupSecret": "$CS_BACKUP_SECRET",
     "AdminACLId": 1,
     "DefaultUser": "csadmin",
@@ -201,7 +205,7 @@ cat <<EOT > /var/www/centaurscoresapi/appsettings.Production.json
   },  
 
   "ConnectionStrings": {
-    "CentaurScoresDatabase": "server=$DB_SERVER;database=$DB_NAME;port=3306;user=$DB_USER;password=$DB_PASSWORD"
+    "CentaurScoresDatabase": "server=$DB_SERVER;port=$DB_PORT;database=$DB_NAME;port=3306;user=$DB_USER;password=$DB_PASSWORD"
   }
 }
 EOT
