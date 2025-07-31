@@ -25,15 +25,57 @@ FLUSH PRIVILEGES;
 You can now set-up a connection string in ```appsettings.json``` on your deployed instance like this:
 
 ```json
-{
-  ...,
-  "ConnectionStrings": {
-    "CentaurScoresDatabase": "server={server-ip};database=CentaurScores;user=csuser;password={superSecretPassword!123}"
+  "AppSettings": {
+    "Secret": "{any secret will do}",
+    "BackupSecret": "{secret string for the backup API}",
+    "AdminACLId": 1,
+    "DefaultUser": "csadmin",
+    "DefaultUserHash": "{password hash generated with powershell script}"
+  },  
+  {
+    ...,
+    "ConnectionStrings": {
+      "CentaurScoresDatabase": "server={server-ip};database=CentaurScores;user=csuser;password={superSecretPassword!123}"
+    }
   }
-}
 ```
 
-The first time you use the software, the initial database schema will automatically be created.
+The password has in abocve configuration is used to seed a user when no users are present in the system. It is generated uwing this PowerShell script:
+
+Make sure the SALT parameter is a 4-charcater string, and the secret parameter contains your password.
+
+```PowerShell
+param (
+    [Parameter(Mandatory = $true)]
+    [string]$Salt,
+    [Parameter(Mandatory = $true)]
+    [string]$Secret
+)
+
+function Calculate-Sha256Hash {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$InputString
+    )
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($InputString)
+        $hashBytes = $sha256.ComputeHash($bytes)
+        $hashString = -join ($hashBytes | ForEach-Object { $_.ToString("x2") })
+        return $hashString
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
+$SaltSecret = "$Salt$Secret"
+$PWD = "$($Salt)$(Calculate-Sha256Hash -InputString $SaltSecret)"
+Write-Output $PWD
+```
+
+The first time you use the software, the initial database schema will automatically be created and seeded.
 
 ## Deploy the software
 
@@ -108,7 +150,7 @@ DOWNLOAD_URL=$(curl -s https://api.github.com/repos/pbijdens/centaur-scores-api/
 DB_SERVER="127.0.0.1"
 DB_USER="csuser"
 DB_NAME="CentaurScores"
-DB_PASSWORD="YOUR-DATABASE-PASSWORD"
+DB_PASSWORD="Centaur!123"
 
 useradd --system --home-dir /var/www --no-create-home csuser --shell /usr/sbin/nologin
 mkdir -p /var/www/centaurscoresapi
@@ -150,8 +192,16 @@ cat <<EOT > /var/www/centaurscoresapi/appsettings.Production.json
       "Microsoft.AspNetCore": "Warning"
     }
   },
+  "AppSettings": {
+    "Secret": "$CS_INITIAL_PASSWORD_HASH",
+    "BackupSecret": "$CS_BACKUP_SECRET",
+    "AdminACLId": 1,
+    "DefaultUser": "csadmin",
+    "DefaultUserHash": "$CS_INITIAL_PASSWORD_HASH"
+  },  
+
   "ConnectionStrings": {
-    "CentaurScoresDatabase": "server=$DB_SERVER;database=$DB_NAME;user=$DB_USER;password=$DB_PASSWORD"
+    "CentaurScoresDatabase": "server=$DB_SERVER;database=$DB_NAME;port=3306;user=$DB_USER;password=$DB_PASSWORD"
   }
 }
 EOT
@@ -164,4 +214,5 @@ systemctl enable centaurscoresapi.service
 systemctl start centaurscoresapi
 sleep 5
 systemctl status centaurscoresapi
+
 ```
