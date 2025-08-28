@@ -92,7 +92,7 @@ namespace CentaurScores.Services
             if (null == setting)
             {
                 setting = new CsSetting { Name = CsSetting.ActiveMatchId, JsonValue = jsonEncodedValue };
-                db.Add(setting);
+                db.Settings.Add(setting);
                 await db.SaveChangesAsync();
             }
             else
@@ -562,7 +562,7 @@ namespace CentaurScores.Services
             if (null == setting)
             {
                 setting = new CsSetting { Name = CsSetting.DevicesNeedingForcedSync, JsonValue = JsonConvert.SerializeObject(new string[] { deviceId }) };
-                db.Add(setting);
+                db.Settings.Add(setting);
             }
             else
             {
@@ -630,7 +630,7 @@ namespace CentaurScores.Services
             if (null == setting)
             {
                 setting = new CsSetting { Name = $"CsUi-Match{id}-{cleanName}", JsonValue = jsonEncodedValue };
-                db.Add(setting);
+                db.Settings.Add(setting);
                 await db.SaveChangesAsync();
             }
             else

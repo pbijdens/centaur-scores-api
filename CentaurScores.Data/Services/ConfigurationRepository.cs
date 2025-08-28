@@ -26,7 +26,7 @@ namespace CentaurScores.Services
             if (null == entity)
             {
                 entity = new CsSetting { Name = CleanKey(key), JsonValue = JsonConvert.SerializeObject(value) };
-                db.Add(entity);
+                db.Settings.Add(entity);
             }
             else
             {
