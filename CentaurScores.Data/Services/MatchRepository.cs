@@ -376,6 +376,7 @@ namespace CentaurScores.Services
             if (!string.IsNullOrWhiteSpace(participant.DeviceID) && participant.DeviceID != Guid.Empty.ToString())
             {
                 await RequestDeviceSynchronization(db, participant.DeviceID);
+                await db.SaveChangesAsync();
             }
 
             // If there is currently someone configured for this lijn, change the device ID so it is no longer 
