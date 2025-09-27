@@ -21,6 +21,7 @@ namespace CentaurScores.CompetitionLogic
         {
             hostApplicationBuilder.Services.AddSingleton<IRuleService, ClubkampioenschapIndoor3pRuleset>();
             hostApplicationBuilder.Services.AddSingleton<IRuleService, ClubkampioenschapIndoor25m1pRuleset>();
+            hostApplicationBuilder.Services.AddSingleton<IRuleService, ClubkampioenschapIndoor18m3pRuleset>();
             hostApplicationBuilder.Services.AddSingleton<IRuleService, LancasterRuleset>();
             hostApplicationBuilder.Services.AddSingleton<IRuleService, Indoor3pRuleset>();
             hostApplicationBuilder.Services.AddSingleton<IRuleService, Indoor25m1pRuleset>();
