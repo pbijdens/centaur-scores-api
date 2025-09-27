@@ -99,7 +99,7 @@ namespace CentaurScores.Services
 
             var result = (await db.Competitions
                     .Include(x => x.ParticipantList)
-                    .Where(x => listId == null || (x.ParticipantList != null && x.ParticipantList.Id == listId))
+                    .Where(x => listId != null && listId >= 0 && (x.ParticipantList != null && x.ParticipantList.Id == listId))
                     .OrderByDescending(x => x.StartDate)
                     .ThenBy(x => x.Name)
                     .ToListAsync())

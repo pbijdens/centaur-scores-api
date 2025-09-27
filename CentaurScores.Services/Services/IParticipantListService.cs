@@ -62,8 +62,9 @@ namespace CentaurScores.Services
         /// <summary>
         /// Get all participant lists.
         /// </summary>
+        /// <param name="includeInactiveLists">If true also inactive lists are returned.</param>
         /// <returns></returns>
-        Task<List<ParticipantListModel>> GetParticipantLists();
+        Task<List<ParticipantListModel>> GetParticipantLists(bool includeInactiveLists = false);
 
         /// <summary>
         /// Update the metadata for a participant list.

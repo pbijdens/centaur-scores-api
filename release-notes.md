@@ -1,3 +1,15 @@
+# Version 1.1.20
+
+Support inactive partiticpants lists. 
+
+Add pure 18M3P competition format.
+
+No longer return any matches or competitions when no list is active.
+
+# Version 1.1.19
+
+Bugfix relase.
+
 # Version 1.1.14
 
 Date: 2025-03-17

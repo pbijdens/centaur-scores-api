@@ -167,7 +167,7 @@ namespace CentaurScores.Services
             int activeID = await FetchActiveID(db);
             List<MatchEntity> entities = await db.Matches.AsNoTracking()
                 .Include(x => x.Competition)
-                .Where(entity => entity.Competition != null && (listId == null || (entity.Competition.ParticipantList != null && entity.Competition.ParticipantList.Id == listId)))
+                .Where(entity => entity.Competition != null && (listId != null && listId >= 0 && (entity.Competition.ParticipantList != null && entity.Competition.ParticipantList.Id == listId)))
                 .OrderBy(entity => entity.Competition!.Name)
                 .OrderByDescending(entity => entity.MatchCode)
                 .ToListAsync();

@@ -33,6 +33,11 @@ namespace CentaurScores.Persistence
         /// </summary>
         public List<CompetitionEntity> Competitions { get; set; } = [];
 
+        /// <summary>
+        /// If unset, assume false. If set to true, the list is inactive and typically not shown.
+        /// </summary>
+        public bool? IsInactive { get; set; } = null;
+
         public ParticipantListModel ToModel()
         {
             ParticipantListModel result = new()
@@ -40,6 +45,7 @@ namespace CentaurScores.Persistence
                 Id = Id,
                 Name = Name,
                 Entries = (Entries ?? []).Select(x => x.ToModel()).ToList(),
+                IsInactive = IsInactive ?? false,
             };
             return result;
         }
@@ -57,6 +63,7 @@ namespace CentaurScores.Persistence
         public void UpdateFromModel(ParticipantListModel metadata)
         {
             Name = metadata.Name;
+            IsInactive = metadata.IsInactive;
         }
     }
 }

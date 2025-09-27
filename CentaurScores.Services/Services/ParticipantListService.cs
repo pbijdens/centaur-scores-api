@@ -133,11 +133,16 @@ namespace CentaurScores.Services
         }
 
         /// <inheritdoc/>
-        public async Task<List<ParticipantListModel>> GetParticipantLists()
+        public async Task<List<ParticipantListModel>> GetParticipantLists(bool includeInactiveLists = false)
         {
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
-            return await Task.FromResult(db.ParticipantLists.OrderBy(x => x.Name).ToList().Select(x => x.ToModel()).ToList());
+            return await Task.FromResult(db.ParticipantLists
+                .Where(x => x.IsInactive == null || x.IsInactive == false || includeInactiveLists)
+                .OrderBy(x => x.Name)                
+                .ToList()
+                .Select(x => x.ToModel())
+                .ToList());
         }
 
 

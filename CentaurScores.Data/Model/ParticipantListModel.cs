@@ -18,6 +18,11 @@ namespace CentaurScores.Model
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
+        /// Indicates if the list is inactive or not.
+        /// </summary>
+        public bool IsInactive { get; set; } = false;
+
+        /// <summary>
         /// All entries in the list.
         /// </summary>
         public List<ParticipantListMemberModel> Entries { get; set; } = [];

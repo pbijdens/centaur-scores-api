@@ -20,9 +20,9 @@ namespace CentaurScores.Controllers
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<ParticipantListModel>>> GetParticipantLists()
+        public async Task<ActionResult<List<ParticipantListModel>>> GetParticipantLists([FromQuery] bool inactive = false)
         {
-            return await participantListsRepository.GetParticipantLists();
+            return await participantListsRepository.GetParticipantLists(inactive);
         }
 
         /// <summary>
