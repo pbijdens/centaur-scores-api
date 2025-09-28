@@ -7,6 +7,13 @@ namespace CentaurScores.CompetitionLogic
     /// </summary>
     public static class RulesetConstants
     {
+        // COMPETITION FORMAT
+        // - This is used in determining the actual GENERIC TYPE of the MATCH that is being organized
+        // - This is used for personal bests
+        // - This is used for classification of competitors
+        // 
+        // This is the value used in the RULESET definition for the CompetitionFormat field
+        // This is the value enntered in the CompetitionFormat field of the PersonalBestList entity
         /// <summary></summary>
         public static string CompetitionFormatIndoor25M1P => "Indoor 25m1p, 25 pijlen";
         /// <summary></summary>

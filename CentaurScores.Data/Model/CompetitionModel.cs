@@ -37,5 +37,9 @@
         /// Fixed partipant list to be used for matches in this competition. Only archers on this list are allowed to take part in the competition.
         /// </summary>
         public ParticipantListMetadataModel? ParticipantsList { get; set; } = null;
+        /// <summary>
+        /// Indicates if the competition is inactive or not.
+        /// </summary>
+        public bool IsInactive { get; set; } = false;
     }
 }

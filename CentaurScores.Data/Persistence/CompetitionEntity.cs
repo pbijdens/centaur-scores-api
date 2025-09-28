@@ -46,6 +46,10 @@ namespace CentaurScores.Persistence
         /// All matches of the competition.
         /// </summary>
         public List<MatchEntity> Matches { get; set; } = [];
+        /// <summary>
+        /// If unset, assume false. If set to true, the list is inactive and typically not shown.
+        /// </summary>
+        public bool? IsInactive { get; set; } = null;
 
         public CompetitionModel ToMetadataModel()
         {
@@ -57,7 +61,8 @@ namespace CentaurScores.Persistence
                 RulesetParametersJSON = RulesetParametersJSON,
                 StartDate = StartDate.HasValue ? StartDate.Value.ToString("yyyy-MM-dd") : null,
                 EndDate = EndDate.HasValue ? EndDate.Value.ToString("yyyy-MM-dd") : null,
-                ParticipantsList = ParticipantList?.ToMetadataModel()
+                ParticipantsList = ParticipantList?.ToMetadataModel(),
+                IsInactive = IsInactive ?? false,
             };
             return result;
         }
@@ -69,6 +74,7 @@ namespace CentaurScores.Persistence
             RulesetParametersJSON = metadata.RulesetParametersJSON;
             StartDate = metadata.StartDate == null ? null : DateTimeOffset.Parse(metadata.StartDate + "T00:00:00Z");
             EndDate = metadata.EndDate == null ? null : DateTimeOffset.Parse(metadata.EndDate + "T00:00:00Z");
+            IsInactive = metadata.IsInactive;
         }
     }
 }

@@ -29,7 +29,7 @@ namespace CentaurScores.Services
         /// Get all competitions/
         /// </summary>
         /// <returns></returns>
-        Task<List<CompetitionModel>> GetCompetitions(int? listId);
+        Task<List<CompetitionModel>> GetCompetitions(int? listId, bool includeInactive = false);
         /// <summary>
         /// Updates a competition's metadata.
         /// </summary>
