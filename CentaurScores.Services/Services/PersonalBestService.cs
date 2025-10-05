@@ -24,6 +24,9 @@ namespace CentaurScores.Services
 
             List<NewPersonalBestModel> allUpdatedPersonalBestsWithDuplicates = [];
 
+            ParticipantListEntity participantList = await db.ParticipantLists.SingleOrDefaultAsync(x => x.Id == memberListId) ?? throw new ArgumentException("Bad ID", nameof(memberListId));
+            ListConfigurationModel config = participantList.GetConfiguration();
+
             List<RulesetModel> rulesets = await GetRulesets();
             IQueryable<PersonalBestsListEntity> pbls = db.ParticipantLists.AsNoTracking().Include(pl => pl.PersonalBestLists).Where(pl => pl.Id == memberListId).SelectMany(pl => pl.PersonalBestLists);
             List<int?> pblIDs = pbls.Select(x => x.Id).Distinct().ToList().ToList();
@@ -49,13 +52,12 @@ namespace CentaurScores.Services
                         matchParticipant.Score,
                         matchParticipant.ParticipantListEntryId,
                         matchParticipant.Match.RulesetCode,
-                        matchParticipant.Match.GroupsJSON,
                         DisciplineCode = matchParticipant.Group,
                         participantListEntry.Name,
                     };
 
 
-            // This is difficult to read, but the easy to readversion had terrible performance
+            // This is difficult to read, but the easy to read version had terrible performance
             var updatedPersonalBestRecords =
                  (from registeredParticipant in registeredParticipants
                   from personalBestListEntry in db.PersonalBestListEntries.AsNoTracking().Include(pble => pble.List).ThenInclude(pbl => pbl.ParticipantList)
@@ -75,14 +77,12 @@ namespace CentaurScores.Services
                       registeredParticipant.CompetitionName,
                       registeredParticipant.DisciplineCode,
                       registeredParticipant.RulesetCode,
-                      registeredParticipant.GroupsJSON,
                       registeredParticipant.MatchId,
                       registeredParticipant.Name,
                   })
                  .Where(x => x.Score > x.PersonalBestScore)
                  .ToList()
                  .Where(x => (x.PersonalBestListEntry.List?.CompetitionFormat ?? "") == rulesetToCf[x.RulesetCode ?? ""])
-                 .Where(x => (JsonConvert.DeserializeObject<GroupInfo[]>(x.GroupsJSON) ?? []).Any(y => y.Code == x.DisciplineCode && y.Label == x.PersonalBestDiscipline))
                  .Select(x => new NewPersonalBestModel
                  {
                      Id = x.PersonalBestListEntry?.Id ?? -1,
@@ -102,7 +102,7 @@ namespace CentaurScores.Services
                 registeredParticipants.ToList().Select(registeredParticipant => new
                 {
                     PD = registeredParticipant,
-                    Discipline = (JsonConvert.DeserializeObject<GroupInfo[]>(registeredParticipant.GroupsJSON) ?? []).FirstOrDefault(r => r.Code == registeredParticipant.DisciplineCode)?.Label ?? "",
+                    Discipline = config.Disciplines.FirstOrDefault(r => r.Code == registeredParticipant.DisciplineCode)?.Label ?? "",
                     ListID = db.PersonalBestLists.AsNoTracking().FirstOrDefault(x => x.CompetitionFormat == rulesetToCf[registeredParticipant.RulesetCode ?? ""])?.Id ?? -1
                 })
                 .Where(matchResult => matchResult.ListID >= 0)

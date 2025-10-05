@@ -3,6 +3,7 @@ using CentaurScores.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Configuration;
+using System.Configuration;
 
 namespace CentaurScores.Services
 {
@@ -117,9 +118,59 @@ namespace CentaurScores.Services
                 .FirstOrDefaultAsync(x => x.Id == memberId && x.List.Id == listId);
             if (null != participantListEntryEntity)
             {
-                return participantListEntryEntity.ToModel();
+                var result = participantListEntryEntity.ToModel();
+                await SyncResponseWithConfiguredCompetitionFormatDisciplines(db, listId, result);
+                return result;
             }
             return null;
+        }
+
+        private async Task SyncResponseWithConfiguredCompetitionFormatDisciplines(CentaurScoresDbContext db, int listId, ParticipantListMemberModel result)
+        {
+            ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
+            if (null == participantListEntity) return;
+
+            if (result.CompetitionFormatDisciplineDivisionMap == null) result.CompetitionFormatDisciplineDivisionMap = [];
+            ListConfigurationModel? configuration = participantListEntity.ToModel().Configuration;
+            if (null == configuration) return;
+
+            // Ensure that all (CompetitionFormat,Discipline) pairs are present in the mapping, even if DivisionCode is null.
+            foreach (var discipline in configuration.Disciplines)
+            {
+                foreach (var competitionFormat in configuration.CompetitionFormats)
+                {
+                    bool found = false;
+                    foreach (var existingMapping in result.CompetitionFormatDisciplineDivisionMap)
+                    {
+                        if (existingMapping.CompetitionFormat == competitionFormat && existingMapping.DisciplineCode == discipline.Code)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        result.CompetitionFormatDisciplineDivisionMap.Add(new CompetitionFormatDisciplineDivisionMapModel
+                        {
+                            CompetitionFormat = competitionFormat,
+                            DisciplineCode = discipline.Code,
+                            DivisionCode = null,
+                        });
+                    }
+                }
+            }
+            HashSet<string> pbDisciplineCodesAndCFSet = result.PersonalBests.Select(pb => 
+                    $"{configuration.Disciplines.FirstOrDefault(x => x.Label== pb.Discipline)?.Code ?? ""}:" +
+                    $":{pb.CompetitionFormat}"
+                    ).ToHashSet();
+
+            // Remove any mappings that are no longer valid according to the current configuration.
+            result.CompetitionFormatDisciplineDivisionMap = result.CompetitionFormatDisciplineDivisionMap
+                .Where(x => configuration.CompetitionFormats.Contains(x.CompetitionFormat) && configuration.Disciplines.Any(d => d.Code == x.DisciplineCode))
+                .OrderBy(x => pbDisciplineCodesAndCFSet.Any(pb => pb == $"{x.DisciplineCode}::{x.CompetitionFormat}") ? "0" : "1")
+                .ThenBy(x => x.CompetitionFormat)
+                .ThenBy(x => x.DisciplineCode)
+                .ToList();
         }
 
         /// <inheritdoc/>

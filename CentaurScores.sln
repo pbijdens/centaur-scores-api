@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.github\workflows\main.yaml = .github\workflows\main.yaml
 		README.md = README.md
 		release-notes.md = release-notes.md
+		TODO.md = TODO.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CentaurScores.Data", "CentaurScores.Data\CentaurScores.Data.csproj", "{C5D8F99E-BF0F-412A-B665-D1C1F359103E}"

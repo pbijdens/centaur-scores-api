@@ -3,7 +3,8 @@
 namespace CentaurScores.Persistence
 {
     /// <summary>
-    /// Represents a list of personal best scores.
+    /// Represents a list of personal best scores for a specific type of competition, e.g. 18m3p indoor
+    /// or 25m1p or 70m36p outdoor.
     /// </summary>
     public class PersonalBestsListEntity
     {

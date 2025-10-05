@@ -40,21 +40,25 @@ namespace CentaurScores.Persistence
         /// <summary>
         /// JSON encoded dictionary of 'target code' x array[score button]
         /// </summary>
+        [Obsolete("Using the keyboards defined in LIST context")]
         public string ScoreValuesJson { get; set; } = "[]";
 
         /// <summary>
         /// List of group info structures indicating allowed groups.
         /// </summary>
+        [Obsolete("Using the groups defined in LIST context")]
         public string GroupsJSON { get; set; } = "[]";
 
         /// <summary>
         /// List of group info structures indicating allowed subgroups.
         /// </summary>
+        [Obsolete("Using the sub-groups defined in LIST context")]
         public string SubgroupsJSON { get; set; } = "[]";
 
         /// <summary>
         /// List of group info structures indicating targets.
         /// </summary>
+        [Obsolete("Using the targets defined in LIST context")]
         public string TargetsJSON { get; set; } = "[]";
 
         /// <summary>
@@ -73,7 +77,7 @@ namespace CentaurScores.Persistence
         public CompetitionEntity? Competition { get; set; } = null;
 
         /// <summary>
-        /// Code for the ruleset.
+        /// Code for the ruleset within the competition's ruleset group for the rules used in this game.
         /// </summary>
         public string? RulesetCode { get; set; } = null;
 
@@ -96,28 +100,41 @@ namespace CentaurScores.Persistence
         public int ActiveRound { get; set; } = 0;
 
         /// <summary>
-        /// Currently active round for this match, only relevant for matches where multiple rounds are
-        /// available. Can be used to split a single match into multiple rounds, provided the score
-        /// calculator can merge these rounds again. Initially only used for finals.
+        /// The total number of rounds for this match; take into account rounds are only relevant for
+        /// finals.
         /// </summary>
         public int NumberOfRounds {  get; set; } = 4;
 
         public MatchModel ToModel()
         {
+            ListConfigurationModel? configuration = Competition?.ParticipantList?.GetConfiguration() ?? ListConfigurationModel.CentaurIndoorDefaults;
+            List<GroupInfo> groups = configuration.Disciplines.OfType<GroupInfo>().ToList();
+            List<GroupInfo> subgroups = configuration.Divisions.OfType<GroupInfo>().ToList();
+            List<GroupInfo> targets = configuration.Targets.OfType<GroupInfo>().ToList();
+            Dictionary<string, List<ScoreButtonDefinition>> scoreValues = configuration.Targets.Select(x => new KeyValuePair<string, List<ScoreButtonDefinition>>(
+                x.Code,
+                x.Keyboard.ToList()
+                )).ToDictionary(x => x.Key, x => x.Value);
+
+            List<GroupInfo> matchLevelGroups = System.Text.Json.JsonSerializer.Deserialize<List<GroupInfo>>(GroupsJSON) ?? [];
+            List<GroupInfo> matchLevelSubgroups = System.Text.Json.JsonSerializer.Deserialize<List<GroupInfo>>(SubgroupsJSON) ?? [];
+            List<GroupInfo> MatchLevelTargets = System.Text.Json.JsonSerializer.Deserialize<List<GroupInfo>>(TargetsJSON) ?? [];
+
+            // We can now
             return new()
             {
                 ArrowsPerEnd = ArrowsPerEnd,
                 AutoProgressAfterEachArrow = AutoProgressAfterEachArrow,
-                Groups = JsonConvert.DeserializeObject<List<GroupInfo>>(GroupsJSON) ?? [],
-                Subgroups = JsonConvert.DeserializeObject<List<GroupInfo>>(SubgroupsJSON) ?? [],
-                Targets = JsonConvert.DeserializeObject<List<GroupInfo>>(TargetsJSON) ?? [],
+                Groups = matchLevelGroups.Count == 0 ? groups : matchLevelGroups,
+                Subgroups = matchLevelGroups.Count == 0 ? subgroups : matchLevelSubgroups,
+                Targets = matchLevelGroups.Count == 0 ? targets : MatchLevelTargets,
                 Lijnen = JsonConvert.DeserializeObject<List<string>>(LijnenJSON) ?? [],
                 Id = Id ?? -1,
                 IsActiveMatch = false,
                 MatchCode = MatchCode,
                 MatchName = MatchName,
                 NumberOfEnds = NumberOfEnds,
-                ScoreValues = JsonConvert.DeserializeObject<Dictionary<string, List<ScoreButtonDefinition>>>(ScoreValuesJson) ?? [],
+                ScoreValues = matchLevelGroups.Count == 0 ? scoreValues : (JsonConvert.DeserializeObject<Dictionary<string, List<ScoreButtonDefinition>>>(ScoreValuesJson) ?? []),
                 RulesetCode = RulesetCode,
                 Competition = Competition?.ToMetadataModel(),
                 ChangedRemotely = ChangedRemotely ?? false,

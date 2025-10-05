@@ -1,9 +1,6 @@
 ﻿namespace CentaurScores.Model
 {
-    /// <summary>
-    /// Extended participant model. See also <see cref="ParticipantModel"/>. Extended to add extra data for rendering.
-    /// </summary>
-    public class ParticipantModelV2 : ParticipantModel
+    public class ParticipantModelFull : ParticipantModelSimple
     {
         /// <summary>
         /// Label of the group info structure for the participants group.
@@ -18,5 +15,9 @@
         /// Name of the target for this participant.
         /// </summary>
         public string? TargetName { get; set; }
+        /// <summary>
+        /// Name of the target for this participant.
+        /// </summary>
+        public List<HeadToHeadInfoEntry> H2HInfo { get; set; } = [];
     }
 }

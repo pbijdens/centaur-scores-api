@@ -4,7 +4,7 @@ namespace CentaurScores.Model
     /// <summary>
     /// Model representing a single participant of a single match.
     /// </summary>
-    public class ParticipantModel
+    public class ParticipantModelSimple
     {
         /// <summary>
         /// Record ID.

@@ -30,11 +30,11 @@ namespace CentaurScores.Persistence
         /// </summary>
         public string Name { get; set; } = string.Empty;
         /// <summary>
-        /// Code of the GroupInfo for the archer's discipline as represented in the match definition's Groups JSON.
+        /// Code of the GroupInfo for the archer's discipline as represented in configuration's Groups JSON.
         /// </summary>
         public string Group { get; set; } = string.Empty;
         /// <summary>
-        /// Code of the GroupInfo for the archer's age group as represented in the match definition's Subgroups JSON.
+        /// Code of the GroupInfo for the archer's discipline as represented in configuration's Subgroups JSON.
         /// </summary>
         public string Subgroup { get; set; } = string.Empty;
         /// <summary>
@@ -58,7 +58,7 @@ namespace CentaurScores.Persistence
         /// </summary>
         public int? ParticipantListEntryId { get; set; } = null;
         
-        public ParticipantModel ToModel(int activeRound)
+        public ParticipantModelSimple ToSimpleModel(int activeRound)
         {
             return new()
             {
@@ -66,17 +66,18 @@ namespace CentaurScores.Persistence
                 Ends = (JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? []).Where(x => x.Round == activeRound).ToList(),
                 Score = Score,
                 HeadToHeadJSON = HeadToHeadJSON,
-                Group = Group,
                 Lijn = Lijn,
                 Name = Name,
-                Subgroup = Subgroup,
-                Target = Target,
                 DeviceID = DeviceID,
                 ParticipantListEntryId = ParticipantListEntryId,
+
+                Group = Group,
+                Subgroup = Subgroup, // should come from list configuration
+                Target = Target,
             };
         }
 
-        public ParticipantModelV2 ToModelV2(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets, int activeRound)
+        public ParticipantModelFull ToFullModel(IEnumerable<GroupInfo> groups, IEnumerable<GroupInfo> subgroups, IEnumerable<GroupInfo> targets, int activeRound)
         {
             return new()
             {
@@ -84,34 +85,14 @@ namespace CentaurScores.Persistence
                 Ends = (JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? []).Where(x => x.Round == activeRound).ToList(),
                 Score = Score,
                 HeadToHeadJSON = HeadToHeadJSON,
-                Group = Group,
                 Lijn = Lijn,
                 Name = Name,
-                Subgroup = Subgroup,
-                Target = Target,
                 DeviceID = DeviceID,
                 ParticipantListEntryId = ParticipantListEntryId,
-                GroupName = (groups ?? []).FirstOrDefault(e => e.Code == Group)?.Label,
-                SubgroupName = (subgroups ?? []).FirstOrDefault(e => e.Code == Subgroup)?.Label,
-                TargetName = (targets ?? []).FirstOrDefault(e => e.Code == Target)?.Label,
-            };
-        }
 
-        public ParticipantModelV3 ToModelV3(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets, int activeRound)
-        {
-            return new()
-            {
-                Id = Id ?? -1,
-                Ends = (JsonConvert.DeserializeObject<List<EndModel>>(EndsJSON) ?? []).Where(x => x.Round == activeRound).ToList(),
-                Score = Score,
-                HeadToHeadJSON = HeadToHeadJSON,
                 Group = Group,
-                Lijn = Lijn,
-                Name = Name,
                 Subgroup = Subgroup,
                 Target = Target,
-                DeviceID = DeviceID,
-                ParticipantListEntryId = ParticipantListEntryId,
                 GroupName = (groups ?? []).FirstOrDefault(e => e.Code == Group)?.Label,
                 SubgroupName = (subgroups ?? []).FirstOrDefault(e => e.Code == Subgroup)?.Label,
                 TargetName = (targets ?? []).FirstOrDefault(e => e.Code == Target)?.Label,
@@ -119,7 +100,7 @@ namespace CentaurScores.Persistence
             };
         }
 
-        public void UpdateFromModel(int activeRound, ParticipantModel data)
+        public void UpdateFromModel(int activeRound, ParticipantModelSimple data)
         {
             Name = data.Name;
             Group = data.Group;
