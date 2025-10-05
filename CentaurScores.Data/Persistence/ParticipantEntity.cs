@@ -78,6 +78,12 @@ namespace CentaurScores.Persistence
 
         public ParticipantModelV2 ToModelV2(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets, int activeRound)
         {
+#warning HERE
+#warning HERE
+#warning HERE -- UPDATE Group, Subgroup and Target to use the configuration from the competition's participant list if available
+#warning HERE
+#warning HERE
+
             return new()
             {
                 Id = Id ?? -1,
@@ -97,8 +103,14 @@ namespace CentaurScores.Persistence
             };
         }
 
-        public ParticipantModelV3 ToModelV3(GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets, int activeRound)
+        public ParticipantModelV3 ToModelV3(IEnumerable<GroupInfo> groups, IEnumerable<GroupInfo> subgroups, IEnumerable<GroupInfo> targets, int activeRound)
         {
+#warning HERE
+#warning HERE
+#warning HERE -- UPDATE Group, Subgroup and Target to use the configuration from the competition's participant list if available
+#warning HERE
+#warning HERE
+
             return new()
             {
                 Id = Id ?? -1,

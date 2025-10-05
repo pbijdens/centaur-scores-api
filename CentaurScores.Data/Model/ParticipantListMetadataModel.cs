@@ -14,5 +14,10 @@
         /// Name of the list.
         /// </summary>
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Configuration for this list.
+        /// </summary>
+        public ListConfigurationModel? Configuration { get; set; } = null;
     }
 }

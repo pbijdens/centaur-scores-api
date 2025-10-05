@@ -36,12 +36,39 @@ namespace CentaurScores.Services
         }
 
         /// <inheritdoc/>
-        public async Task<List<RulesetModel>> GetRulesets()
+        public async Task<List<RulesetModel>> GetRulesets(int? listId)
         {
             List<RulesetModel> result = [];
             foreach (var service in ruleServices)
             {
                 result.AddRange(await service.GetSupportedRulesets());
+            }
+
+            if (listId != null)
+            {
+                using var db = new CentaurScoresDbContext(configuration);
+                db.Database.EnsureCreated();
+                ParticipantListEntity list = db.ParticipantLists.Single(x => x.Id == listId);
+                ParticipantListModel listModel = list.ToModel();
+                var listConfig = (listModel.Configuration ?? ListConfigurationModel.Default);
+                result = [.. result.Where(x => listConfig.CompetitionFormats.Contains(x.CompetitionFormat))];
+
+                // Update the ruleset suggested match parameters
+                foreach (RulesetModel ruleSet in result)
+                {
+                    ruleSet.RequiredClasses = [.. listConfig.Disciplines.Select(x => new GroupInfo(x))];    // just copy disciplines
+                    ruleSet.RequiredSubclasses = [.. listConfig.Divisions.Select(x => new GroupInfo(x))];   // just copy divisions
+                    ruleSet.RequiredTargets.RemoveAll(x => !listConfig.Targets.Any(t => t.Code == x.Code)); // delete any targets not supported in this list
+                    ruleSet.RequiredScoreValues.Clear();
+                    foreach (GroupInfo target in ruleSet.RequiredTargets)
+                    {
+                        TargetModel? targetConfig = listConfig.Targets.FirstOrDefault(t => t.Code == target.Code);
+                        if (null != targetConfig)
+                        {
+                            ruleSet.RequiredScoreValues[target.Code] = [..targetConfig.Keyboard];
+                        }
+                    }
+                }
             }
             return result;
         }
@@ -53,7 +80,7 @@ namespace CentaurScores.Services
             db.Database.EnsureCreated();
 
             IRuleService? applicableRuleService = null;
-            MatchEntity foundMatchEntity = await db.Matches.FirstOrDefaultAsync(x => x.Id == id) ?? throw new ArgumentException("Bad match ID", nameof(id));
+            MatchEntity foundMatchEntity = await db.GetMatchEntitiesUntracked().FirstOrDefaultAsync(x => x.Id == id) ?? throw new ArgumentException("Bad match ID", nameof(id));
             foreach (var service in ruleServices)
             {
                 if (await service.SupportsMatch(foundMatchEntity))

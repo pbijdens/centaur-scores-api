@@ -5,6 +5,15 @@
     /// </summary>
     public class GroupInfo
     {
+        public GroupInfo() { }
+
+        public GroupInfo(GroupInfo x)
+        {
+            Id = x.Id;
+            Label = x.Label;
+            Code = x.Code;
+        }
+
         /// <summary>
         /// Not used.
         /// </summary>

@@ -49,7 +49,7 @@ namespace CentaurScores.Services
 
             // TODO -> MATCH REPO
             using var db = new CentaurScoresDbContext(configuration);
-            MatchEntity matchEntity = await db.Matches.Include(m => m.Participants).Where(entity => entity.Id == sourceMatch.Id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(sourceMatch));
+            MatchEntity matchEntity = await db.GetMatchEntities().Include(m => m.Participants).Where(entity => entity.Id == sourceMatch.Id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(sourceMatch));
             matchEntity.ActiveRound = 1;
             await db.SaveChangesAsync();
 
@@ -206,20 +206,17 @@ namespace CentaurScores.Services
 
             // Open a new context now and process the next round
             using var db = new CentaurScoresDbContext(configuration);
-            MatchEntity matchEntity = await db.Matches.Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(id));
+            MatchEntity matchEntity = await db.GetMatchEntitiesUntracked().Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(id));
+            MatchModel matchModel = matchEntity.ToModel();
 
             if (matchEntity.ActiveRound >= 4)
             {
                 return;
             }
 
-            GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.GroupsJSON ?? "[]") ?? [];
-            GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.SubgroupsJSON ?? "[]") ?? [];
-            GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.TargetsJSON ?? "[]") ?? [];
+            IEnumerable<ParticipantModelV3> participantsInThisRound = matchEntity.Participants.Select(m => m.ToModelV3(matchModel.Groups, matchModel.Subgroups, matchModel.Targets, matchEntity.ActiveRound)).Where(m => m.H2HInfo.Count >= matchEntity.ActiveRound);
 
-            IEnumerable<ParticipantModelV3> participantsInThisRound = matchEntity.Participants.Select(m => m.ToModelV3(groups, subgroups, targets, matchEntity.ActiveRound)).Where(m => m.H2HInfo.Count >= matchEntity.ActiveRound);
-
-            foreach (GroupInfo group in groups)
+            foreach (GroupInfo group in matchModel.Groups)
             {
                 double numberOfBracketsThisRound = Math.Pow(2, matchEntity.NumberOfRounds - matchEntity.ActiveRound);
                 for (int bracketNo = 1; bracketNo <= numberOfBracketsThisRound; bracketNo += 2)
@@ -265,7 +262,7 @@ namespace CentaurScores.Services
 
             // clear all device IDs
             // clear all lijnen
-            matchEntity = await db.Matches.Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new InvalidOperationException("This should not happen");
+            matchEntity = await db.GetMatchEntitiesUntracked().Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new InvalidOperationException("This should not happen");
             foreach (ParticipantEntity participant in matchEntity.Participants.ToList())
             {
                 participant.Lijn = string.Empty;
@@ -277,13 +274,10 @@ namespace CentaurScores.Services
         private async Task CalculateClearWinners(int id)
         {
             using var db = new CentaurScoresDbContext(configuration);
-            MatchEntity matchEntity = await db.Matches.Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(id));
+            MatchEntity matchEntity = await db.GetMatchEntitiesUntracked().Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(id));
+            MatchModel matchModel = matchEntity.ToModel();
 
-            GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.GroupsJSON ?? "[]") ?? [];
-            GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.SubgroupsJSON ?? "[]") ?? [];
-            GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.TargetsJSON ?? "[]") ?? [];
-
-            IEnumerable<ParticipantModelV3> participantsInThisRound = matchEntity.Participants.Select(m => m.ToModelV3(groups, subgroups, targets, matchEntity.ActiveRound)).Where(m => m.H2HInfo.Count >= matchEntity.ActiveRound);
+            IEnumerable<ParticipantModelV3> participantsInThisRound = matchEntity.Participants.Select(m => m.ToModelV3(matchModel.Groups, matchModel.Subgroups, matchModel.Targets, matchEntity.ActiveRound)).Where(m => m.H2HInfo.Count >= matchEntity.ActiveRound);
 
             if (matchEntity.ActiveRound >= 4)
             {
@@ -341,14 +335,11 @@ namespace CentaurScores.Services
         {
             using var db = new CentaurScoresDbContext(configuration);
 
-            MatchEntity matchEntity = await db.Matches.Include(m => m.Competition).AsNoTracking().Where(entity => entity.Id == matchId).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(matchId));
+            MatchEntity matchEntity = await db.GetMatchEntitiesUntracked().Include(m => m.Competition).Where(entity => entity.Id == matchId).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(matchId));
+            MatchModel matchModel = matchEntity.ToModel();
 
-            GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.GroupsJSON ?? "[]") ?? [];
-            GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.SubgroupsJSON ?? "[]") ?? [];
-            GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.TargetsJSON ?? "[]") ?? [];
-
-            ParticipantModelV3? winnerModel = db.Participants.FirstOrDefault(p => p.Id == winner)?.ToModelV3(groups, subgroups, targets, matchEntity.ActiveRound);
-            ParticipantModelV3? loserModel = db.Participants.FirstOrDefault(p => p.Id == loser)?.ToModelV3(groups, subgroups, targets, matchEntity.ActiveRound);
+            ParticipantModelV3? winnerModel = db.Participants.FirstOrDefault(p => p.Id == winner)?.ToModelV3(matchModel.Groups, matchModel.Subgroups, matchModel.Targets, matchEntity.ActiveRound);
+            ParticipantModelV3? loserModel = db.Participants.FirstOrDefault(p => p.Id == loser)?.ToModelV3(matchModel.Groups, matchModel.Subgroups, matchModel.Targets, matchEntity.ActiveRound);
 
             if (winnerModel != null)
             {
@@ -366,7 +357,7 @@ namespace CentaurScores.Services
         public async Task GotoPreviousRound(int id)
         {
             using var db = new CentaurScoresDbContext(configuration);
-            MatchEntity matchEntity = await db.Matches.Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(id));
+            MatchEntity matchEntity = await db.GetMatchEntitiesUntracked().Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new ArgumentException("Invalid match identifier", nameof(id));
 
             if (matchEntity.ActiveRound >= 2)
             {
@@ -376,7 +367,7 @@ namespace CentaurScores.Services
 
                 // clear all device IDs
                 // clear all lijnen
-                matchEntity = await db.Matches.Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new InvalidOperationException("This should not happen");
+                matchEntity = await db.GetMatchEntitiesUntracked().Include(m => m.Participants).Where(entity => entity.Id == id).SingleOrDefaultAsync() ?? throw new InvalidOperationException("This should not happen");
                 foreach (ParticipantEntity participant in matchEntity.Participants.ToList())
                 {
                     participant.Lijn = string.Empty;

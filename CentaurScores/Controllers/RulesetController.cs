@@ -24,7 +24,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<List<RulesetModel>>> GetRulesets(int? listId)
         {
-            return await competitionService.GetRulesets();
+            return await competitionService.GetRulesets(listId);
         }
     }
 }

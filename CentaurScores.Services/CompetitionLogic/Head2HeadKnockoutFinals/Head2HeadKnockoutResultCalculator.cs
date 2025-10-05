@@ -49,10 +49,11 @@ namespace CentaurScores.CompetitionLogic.Head2HeadKnockoutFinals
             using CentaurScoresDbContext db = new(configuration);
 
             MatchEntity matchEntity = (
-                await db.Matches.AsNoTracking()
+                await db.GetMatchEntitiesUntracked()
                     .Where(e => e.Id == matchId)
                     .Include(m => m.Participants)
                 .FirstOrDefaultAsync()) ?? throw new ArgumentException("Selected match can't be found");
+            MatchModel matchModel = matchEntity.ToModel();
 
             MatchResultModel result = new MatchResultModel
             {
@@ -63,15 +64,15 @@ namespace CentaurScores.CompetitionLogic.Head2HeadKnockoutFinals
                 Code = matchEntity.MatchCode,
                 Name = matchEntity.MatchName,
                 Flags = matchEntity.MatchFlags,
-                Groups = JsonConvert.DeserializeObject<List<GroupInfo>>(matchEntity.GroupsJSON) ?? [],
-                Subgroups = [],
+                Groups = matchModel.Groups,
+                Subgroups = [], // no subgroups for finals
                 Ruleset = matchEntity.RulesetCode ?? string.Empty,
 
                 // We will populate these
                 FinalScores = [],
             };
 
-            await AddBracketsForGroups(db, matchEntity, result);
+            await AddBracketsForGroups(db, matchModel, matchEntity, result);
             // for each round
             //   for each discipline
             //     by bracket number
@@ -81,12 +82,8 @@ namespace CentaurScores.CompetitionLogic.Head2HeadKnockoutFinals
             return result;
         }
 
-        private async Task AddBracketsForGroups(CentaurScoresDbContext db, MatchEntity matchEntity, MatchResultModel result)
+        private async Task AddBracketsForGroups(CentaurScoresDbContext db, MatchModel matchModel, MatchEntity matchEntity, MatchResultModel result)
         {
-            GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.GroupsJSON ?? "[]") ?? [];
-            GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.SubgroupsJSON ?? "[]") ?? [];
-            GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.TargetsJSON ?? "[]") ?? [];
-
             var groupedResults = matchEntity.Participants.GroupBy(p => p.Group).OrderBy(x => x.Key).ToList();
             foreach (IGrouping<string, ParticipantEntity>? group in groupedResults)
             {
@@ -94,14 +91,14 @@ namespace CentaurScores.CompetitionLogic.Head2HeadKnockoutFinals
 
                 for (int roundIndex = 1; roundIndex <= 4; roundIndex++)
                 {
-                    AddRoundScoreForFinalForGroup(matchEntity, result, groups, subgroups, targets, group, roundIndex);
+                    AddRoundScoreForFinalForGroup(matchEntity, result, matchModel.Groups, matchModel.Subgroups, matchModel.Targets, group, roundIndex);
                 }
 
                 await Task.FromResult(0);
             }
         }
 
-        private static void AddRoundScoreForFinalForGroup(MatchEntity matchEntity, MatchResultModel result, GroupInfo[] groups, GroupInfo[] subgroups, GroupInfo[] targets, IGrouping<string, ParticipantEntity> group, int roundIndex)
+        private static void AddRoundScoreForFinalForGroup(MatchEntity matchEntity, MatchResultModel result, IEnumerable<GroupInfo> groups, IEnumerable<GroupInfo> subgroups, IEnumerable<GroupInfo> targets, IGrouping<string, ParticipantEntity> group, int roundIndex)
         {
             int[] bracketSizes = [8, 4, 2, 2];
 
@@ -122,13 +119,13 @@ namespace CentaurScores.CompetitionLogic.Head2HeadKnockoutFinals
 
             for (int bracketNo = 1; bracketNo <= bracketSizes[roundIndex - 1]; bracketNo++)
             {
-                HeadToHeadScore score = CalculateHeadToHeadScoreForBracketForROund(matchEntity, group, roundIndex, brackets, bracketNo);
+                HeadToHeadScore score = CalculateHeadToHeadScoreForBracketForRound(matchEntity, group, roundIndex, brackets, bracketNo);
 
                 matchesThisRound.Add(score);
             }
         }
 
-        private static HeadToHeadScore CalculateHeadToHeadScoreForBracketForROund(MatchEntity matchEntity, IGrouping<string, ParticipantEntity> group, int roundIndex, IEnumerable<IGrouping<int, ParticipantModelV3>> brackets, int bracketNo)
+        private static HeadToHeadScore CalculateHeadToHeadScoreForBracketForRound(MatchEntity matchEntity, IGrouping<string, ParticipantEntity> group, int roundIndex, IEnumerable<IGrouping<int, ParticipantModelV3>> brackets, int bracketNo)
         {
             HeadToHeadScore score = new() { BracketNumber = bracketNo };
             var bracketData = brackets.SingleOrDefault(b => b.Key == bracketNo);

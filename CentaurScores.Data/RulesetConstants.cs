@@ -38,20 +38,30 @@ namespace CentaurScores.CompetitionLogic
         public static string CompetitionFormat3PFinals => "Finaleronde 3 pijlen, 5 Sets/Series";
 
         /// <summary>
+        /// Standard set of conpoetition formats that are normally used in AHV Centaur.
+        /// </summary>
+        public static string[] DefaultCompetitionFormats = [
+            CompetitionFormatIndoor25M1P,
+            CompetitionFormatIndoor18M3P,
+            CompetitionFormat3PFinals,
+        ];
+
+        /// <summary>
         /// Classes that are normally used in AHV Centaur.
         /// </summary>
         public static readonly List<GroupInfo> Classes = [
-                new() { Code = "", Label = "Recurve"  },
-                new() { Code = "C", Label = "Compound"  },
-                new() { Code = "H", Label = "Hout"  },
-                new() { Code = "B", Label = "Barebow"  }
+            new DisciplineModel { Code = "R", Label = "Recurve" },
+            new DisciplineModel { Code = "C", Label = "Compound" },
+            new DisciplineModel { Code = "B", Label = "Barebow" },
+            new DisciplineModel { Code = "L", Label = "Longbow" },
+            new DisciplineModel { Code = "T", Label = "Traditioneel" },
             ];
 
         /// <summary>
         /// All officially available subclasses
         /// </summary>
         public static readonly List<GroupInfo> KHSNSubclasses = [
-                new() { Code = "", Label = "Senioren"  },
+                new() { Code = "S", Label = "Senioren"  },
                 new() { Code = "O12", Label = "Onder 12"  },
                 new() { Code = "O14", Label = "Onder 14"  },
                 new() { Code = "O18", Label = "Onder 18"  },
@@ -64,7 +74,7 @@ namespace CentaurScores.CompetitionLogic
         /// Subclasses that are normally used in AHV Centaur.
         /// </summary>
         public static readonly List<GroupInfo> CentaurSubclassesFull = [
-                new() { Code = "", Label = "Senioren"  },
+                new() { Code = "S", Label = "Senioren"  },
                 new() { Code = "O12", Label = "Onder 12"  },
                 new() { Code = "O14", Label = "Onder 14"  },
                 new() { Code = "O18", Label = "Onder 18"  },
@@ -75,12 +85,12 @@ namespace CentaurScores.CompetitionLogic
         /// Subclasses that are used for the indoor competition for Centaur.
         /// </summary>
         public static readonly List<GroupInfo> CentaurSubclassesCompetities = [
-                new() { Code = "", Label = "Senioren"  },
+                new() { Code = "S", Label = "Senioren"  },
                 new() { Code = "O18", Label = "Onder 18"  },
             ];
 
         // Standard keyboard that can be reused everywhere
-        private static readonly List<ScoreButtonDefinition> StandardKeyboard1to10 = [
+        public static readonly List<ScoreButtonDefinition> StandardKeyboard1to10 = [
                           new() { Label = "10", Value = 10 },
                                   new() { Label = "9", Value = 9 },
                                   new() { Label = "8", Value = 8 },
@@ -96,7 +106,7 @@ namespace CentaurScores.CompetitionLogic
                                 ];
 
         // Standard keyboard that can be reused everywhere
-        private static readonly List<ScoreButtonDefinition> StandardKeyboard6to10 = [
+        public static readonly List<ScoreButtonDefinition> StandardKeyboard6to10 = [
                                   new() { Label = "10", Value = 10 },
                                   new() { Label = "9", Value = 9 },
                                   new() { Label = "8", Value = 8 },

@@ -27,5 +27,17 @@ namespace CentaurScores.Model
         /// <summary>If applicable, all personal best entries for this user. Only populated
         /// when a single participant list entry is retrieved.</summary>
         public List<PersonalBestListEntryModel> PersonalBests { get; set; } = [];
+
+        /// <summary>
+        /// Mapping from competition format + discipline to division.
+        /// </summary>
+        public List<CompetitionFormatDisciplineDivisionMapModel> CompetitionFormatDisciplineDivisionMap { get; set; } = [];
+    }
+
+    public class CompetitionFormatDisciplineDivisionMapModel
+    {
+        public string CompetitionFormat { get; set; } = string.Empty;
+        public string DisciplineCode { get; set; } = string.Empty;
+        public string? DivisionCode { get; set; } = string.Empty;
     }
 }

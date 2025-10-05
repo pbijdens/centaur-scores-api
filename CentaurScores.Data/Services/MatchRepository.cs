@@ -67,7 +67,7 @@ namespace CentaurScores.Services
 
         private static async Task<MatchModel> GetMatchModelFromID(CentaurScoresDbContext db, int id, int activeID)
         {
-            List<MatchEntity> entities = await db.Matches.Include(m => m.Competition).AsNoTracking().Where(entity => entity.Id == id).ToListAsync();
+            List<MatchEntity> entities = await db.GetMatchEntitiesUntracked().Where(entity => entity.Id == id).ToListAsync();
             MatchModel? result = entities.Select(x => x.ToModel()).Select(x =>
             {
                 x.IsActiveMatch = x.Id == activeID;
@@ -117,19 +117,22 @@ namespace CentaurScores.Services
             {
                 ArrowsPerEnd = match.ArrowsPerEnd,
                 AutoProgressAfterEachArrow = match.AutoProgressAfterEachArrow,
-                GroupsJSON = JsonConvert.SerializeObject(match.Groups),
                 LijnenJSON = JsonConvert.SerializeObject(match.Lijnen),
                 NumberOfEnds = match.NumberOfEnds,
                 Participants = [],
-                ScoreValuesJson = JsonConvert.SerializeObject(match.ScoreValues),
-                SubgroupsJSON = JsonConvert.SerializeObject(match.Subgroups),
-                TargetsJSON = JsonConvert.SerializeObject(match.Targets),
                 MatchCode = match.MatchCode,
                 MatchName = match.MatchName,
                 RulesetCode = match.RulesetCode,
                 MatchFlags = match.MatchFlags,
                 ActiveRound = match.ActiveRound,
                 NumberOfRounds = match.NumberOfRounds,
+
+                // No longer used, moved to participant list configuration instead,
+                // global for all competitions in a list
+                GroupsJSON = "[]",
+                ScoreValuesJson = "{}",
+                SubgroupsJSON = "[]",
+                TargetsJSON = "[]",
             };
             if (match.Competition != null && match.Competition.Id > 0)
             {
@@ -165,7 +168,7 @@ namespace CentaurScores.Services
             db.Database.EnsureCreated();
 
             int activeID = await FetchActiveID(db);
-            List<MatchEntity> entities = await db.Matches.AsNoTracking()
+            List<MatchEntity> entities = await db.GetMatchEntitiesUntracked()
                 .Include(x => x.Competition)
                 .Where(entity => entity.Competition != null && (listId != null && listId >= 0 && (entity.Competition.ParticipantList != null && entity.Competition.ParticipantList.Id == listId)))
                 .OrderBy(entity => entity.Competition!.Name)
@@ -215,12 +218,8 @@ namespace CentaurScores.Services
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
 
-            MatchEntity match = await db.Matches.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id) ?? throw new ArgumentException("Bad match ID", nameof(id));
-
-
-            GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(match.GroupsJSON ?? "[]") ?? [];
-            GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(match.SubgroupsJSON ?? "[]") ?? [];
-            GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(match.TargetsJSON ?? "[]") ?? [];
+            MatchEntity match = await db.GetMatchEntitiesUntracked().SingleOrDefaultAsync(x => x.Id == id) ?? throw new ArgumentException("Bad match ID", nameof(id));
+            MatchModel matchModel = match.ToModel();
 
             List<ParticipantEntity> entities;
             if ((match.MatchFlags & MatchEntity.MatchFlagsHeadToHead) != 0x0)
@@ -239,7 +238,7 @@ namespace CentaurScores.Services
                 entities = await db.Participants.AsNoTracking().Where(x => x.Match.Id == id).OrderBy(entity => entity.Name).ToListAsync();
             }
 
-            List<ParticipantModelV3> result = entities.Select(x => x.ToModelV3(groups, subgroups, targets, match.ActiveRound)).ToList();
+            List<ParticipantModelV3> result = entities.Select(x => x.ToModelV3(matchModel.Groups, matchModel.Subgroups, matchModel.Targets, match.ActiveRound)).ToList();
             result.ForEach(x =>
             {
                 AutoFixParticipantModel(match.ToModel(), x);
@@ -290,15 +289,20 @@ namespace CentaurScores.Services
                 matchEntity.NumberOfEnds = match.NumberOfEnds;
                 matchEntity.ArrowsPerEnd = match.ArrowsPerEnd;
                 matchEntity.AutoProgressAfterEachArrow = match.AutoProgressAfterEachArrow;
-                matchEntity.ScoreValuesJson = JsonConvert.SerializeObject(match.ScoreValues);
-                matchEntity.GroupsJSON = JsonConvert.SerializeObject(match.Groups);
-                matchEntity.SubgroupsJSON = JsonConvert.SerializeObject(match.Subgroups);
-                matchEntity.TargetsJSON = JsonConvert.SerializeObject(match.Targets);
                 matchEntity.LijnenJSON = JsonConvert.SerializeObject(match.Lijnen);
                 matchEntity.RulesetCode = match.RulesetCode;
                 matchEntity.MatchFlags = match.MatchFlags;
                 matchEntity.ActiveRound = match.ActiveRound;
                 matchEntity.NumberOfRounds = match.NumberOfRounds;
+
+                // TODO: These are no longer supported and should be removed in due time
+                if (matchEntity.GroupsJSON != "[]")
+                {
+                    matchEntity.ScoreValuesJson = JsonConvert.SerializeObject(match.ScoreValues);
+                    matchEntity.GroupsJSON = JsonConvert.SerializeObject(match.Groups);
+                    matchEntity.SubgroupsJSON = JsonConvert.SerializeObject(match.Subgroups);
+                    matchEntity.TargetsJSON = JsonConvert.SerializeObject(match.Targets);
+                }
 
                 await db.SaveChangesAsync();
             }
@@ -317,7 +321,7 @@ namespace CentaurScores.Services
             int activeID = await FetchActiveID(db);
             if (activeID != id) throw new InvalidOperationException($"Updating data is only allowed for the currently active match.");
 
-            MatchEntity? matchEntity = await db.Matches.Include(m => m.Participants).Where(x => x.Id == id).FirstOrDefaultAsync();
+            MatchEntity? matchEntity = await db.GetMatchEntities().Include(m => m.Participants).Where(x => x.Id == id).FirstOrDefaultAsync();
             if (null == matchEntity) throw new InvalidOperationException($"Updating data for non-existent match {id} is not allowed.");
 
             var lijnen = JsonConvert.DeserializeObject<List<string>>(matchEntity.LijnenJSON) ?? [];
@@ -369,7 +373,7 @@ namespace CentaurScores.Services
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
 
-            MatchEntity matchEntity = await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid match ID", nameof(id));
+            MatchEntity matchEntity = await db.GetMatchEntities().Where(entity => entity.Id == id).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid match ID", nameof(id));
 
             ParticipantEntity? participant = db.Participants.Where(x => x.Id == participantId).FirstOrDefault() ?? throw new ArgumentException("Invalid participant ID", nameof(participantId));
 
@@ -405,7 +409,7 @@ namespace CentaurScores.Services
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
 
-            MatchModel matchModel = (await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync())?.ToModel() ?? throw new ArgumentException("Invalid match ID", nameof(id));
+            MatchModel matchModel = (await db.GetMatchEntitiesUntracked().Where(entity => entity.Id == id).FirstOrDefaultAsync())?.ToModel() ?? throw new ArgumentException("Invalid match ID", nameof(id));
             ParticipantEntity participantEntity = await db.Participants.AsNoTracking().Where(x => x.Id == participantId).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid participant ID", nameof(participantId));
 
             ParticipantModel model = participantEntity.ToModel(matchModel.ActiveRound);
@@ -420,7 +424,7 @@ namespace CentaurScores.Services
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
 
-            MatchEntity matchEntity = await db.Matches.FirstOrDefaultAsync(entity => entity.Id == id) ?? throw new ArgumentException("Invalid match ID", nameof(id));
+            MatchEntity matchEntity = await db.GetMatchEntitiesUntracked().FirstOrDefaultAsync(entity => entity.Id == id) ?? throw new ArgumentException("Invalid match ID", nameof(id));
             MatchModel matchModel = matchEntity.ToModel();
             ParticipantEntity participantEntity = await db.Participants.Where(x => x.Id == participantId).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid participant ID", nameof(participantId));
 
@@ -495,16 +499,12 @@ namespace CentaurScores.Services
         {
             using CentaurScoresDbContext db = new(configuration);
             MatchEntity matchEntity = await db.Matches.Where(entity => entity.Id == id).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid match ID", nameof(id));
-
-
-            GroupInfo[] groups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.GroupsJSON ?? "[]") ?? [];
-            GroupInfo[] subgroups = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.SubgroupsJSON ?? "[]") ?? [];
-            GroupInfo[] targets = JsonConvert.DeserializeObject<GroupInfo[]>(matchEntity.TargetsJSON ?? "[]") ?? [];
+            MatchModel matchModel = matchEntity.ToModel();
 
             bool isHeadToHead = (matchEntity.MatchFlags & MatchEntity.MatchFlagsHeadToHead) != 0;
 
             List<ParticipantEntity> participants = await db.Participants.Where(p => p.Match.Id == id).ToListAsync();
-            List<ParticipantModelV3> models = participants.Select(p => p.ToModelV3(groups, subgroups, targets, matchEntity.ActiveRound)).OrderBy(p => p.H2HInfo.FirstOrDefault()?.InitialPosition).ToList();
+            List<ParticipantModelV3> models = participants.Select(p => p.ToModelV3(matchModel.Groups, matchModel.Subgroups, matchModel.Targets, matchEntity.ActiveRound)).OrderBy(p => p.H2HInfo.FirstOrDefault()?.InitialPosition).ToList();
             int index = models.FindIndex(x => x.Id == participantId);
 
             // Check if the operation would make sense, otherwise just ignore it
@@ -554,6 +554,8 @@ namespace CentaurScores.Services
 
             MatchEntity match = await db.Matches.Where(entity => entity.Id == matchId).FirstOrDefaultAsync() ?? throw new ArgumentException("Invalid match ID", nameof(matchId));
             match.ChangedRemotely = false;
+
+            await db.SaveChangesAsync();
         }
 
         private static async Task RequestDeviceSynchronization(CentaurScoresDbContext db, string deviceId)
