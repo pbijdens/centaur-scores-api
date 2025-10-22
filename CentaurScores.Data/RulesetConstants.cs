@@ -7,6 +7,13 @@ namespace CentaurScores.CompetitionLogic
     /// </summary>
     public static class RulesetConstants
     {
+        // COMPETITION FORMAT
+        // - This is used in determining the actual GENERIC TYPE of the MATCH that is being organized
+        // - This is used for personal bests
+        // - This is used for classification of competitors
+        // 
+        // This is the value used in the RULESET definition for the CompetitionFormat field
+        // This is the value enntered in the CompetitionFormat field of the PersonalBestList entity
         /// <summary></summary>
         public static string CompetitionFormatIndoor25M1P => "Indoor 25m1p, 25 pijlen";
         /// <summary></summary>
@@ -31,49 +38,26 @@ namespace CentaurScores.CompetitionLogic
         public static string CompetitionFormat3PFinals => "Finaleronde 3 pijlen, 5 Sets/Series";
 
         /// <summary>
-        /// Classes that are normally used in AHV Centaur.
+        /// Standard set of competition formats that are normally used in AHV Centaur.
         /// </summary>
-        public static readonly List<GroupInfo> Classes = [
-                new() { Code = "", Label = "Recurve"  },
-                new() { Code = "C", Label = "Compound"  },
-                new() { Code = "H", Label = "Hout"  },
-                new() { Code = "B", Label = "Barebow"  }
-            ];
+        public static string[] DefaultCompetitionFormats = [
+            CompetitionFormatIndoor25M1P,
+            CompetitionFormatIndoor18M3P,
+            CompetitionFormat3PFinals,
+        ];
 
         /// <summary>
-        /// All officially available subclasses
+        /// Classes are defined in the list configuration.
         /// </summary>
-        public static readonly List<GroupInfo> KHSNSubclasses = [
-                new() { Code = "", Label = "Senioren"  },
-                new() { Code = "O12", Label = "Onder 12"  },
-                new() { Code = "O14", Label = "Onder 14"  },
-                new() { Code = "O18", Label = "Onder 18"  },
-                new() { Code = "O21", Label = "Onder 21"  },
-                new() { Code = "50+", Label = "50+"  },
-                new() { Code = "60+", Label = "60+"  },
-            ];
+        public static readonly List<GroupInfo> DefaultClasses = [];
 
         /// <summary>
-        /// Subclasses that are normally used in AHV Centaur.
+        /// Subclasses that are defined in the list configuration.
         /// </summary>
-        public static readonly List<GroupInfo> CentaurSubclassesFull = [
-                new() { Code = "", Label = "Senioren"  },
-                new() { Code = "O12", Label = "Onder 12"  },
-                new() { Code = "O14", Label = "Onder 14"  },
-                new() { Code = "O18", Label = "Onder 18"  },
-                new() { Code = "50+", Label = "50+"  },
-            ];
-
-        /// <summary>
-        /// Subclasses that are used for the indoor competition for Centaur.
-        /// </summary>
-        public static readonly List<GroupInfo> CentaurSubclassesCompetities = [
-                new() { Code = "", Label = "Senioren"  },
-                new() { Code = "O18", Label = "Onder 18"  },
-            ];
+        public static readonly List<GroupInfo> DefaultDivisions = [];
 
         // Standard keyboard that can be reused everywhere
-        private static readonly List<ScoreButtonDefinition> StandardKeyboard1to10 = [
+        public static readonly List<ScoreButtonDefinition> StandardKeyboard1to10 = [
                           new() { Label = "10", Value = 10 },
                                   new() { Label = "9", Value = 9 },
                                   new() { Label = "8", Value = 8 },
@@ -89,7 +73,7 @@ namespace CentaurScores.CompetitionLogic
                                 ];
 
         // Standard keyboard that can be reused everywhere
-        private static readonly List<ScoreButtonDefinition> StandardKeyboard6to10 = [
+        public static readonly List<ScoreButtonDefinition> StandardKeyboard6to10 = [
                                   new() { Label = "10", Value = 10 },
                                   new() { Label = "9", Value = 9 },
                                   new() { Label = "8", Value = 8 },

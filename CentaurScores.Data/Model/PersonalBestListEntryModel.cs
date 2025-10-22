@@ -39,5 +39,10 @@
         /// The name of the list. Optional.
         /// </summary>
         public string? ListName {  get; set; } = string.Empty;
+
+        /// <summary>
+        /// The competition format for this list.
+        /// </summary>
+        public string CompetitionFormat { get; internal set; } = String.Empty;
     }
 }

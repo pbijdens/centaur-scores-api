@@ -20,8 +20,8 @@ namespace CentaurScores.CompetitionLogic.CentaurCompetition
                     Name = "Clubkampioenschap Indoor 18m3p",
                     RequiredArrowsPerEnd = 3,
                     RequiredEnds = 10,
-                    RequiredClasses = RulesetConstants.Classes,
-                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredClasses = RulesetConstants.DefaultClasses,
+                    RequiredSubclasses = RulesetConstants.DefaultDivisions,
                     RequiredTargets = RulesetConstants.Targets18M,
                     RequiredScoreValues = RulesetConstants.Keyboards18M
                 }

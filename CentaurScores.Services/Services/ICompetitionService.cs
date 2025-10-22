@@ -13,6 +13,7 @@ namespace CentaurScores.Services
         /// <param name="competitionId"></param>
         /// <returns></returns>
         Task<CompetitionResultModel?> CalculateCompetitionResult(int competitionId);
+
         /// <summary>
         /// Calculate the score for a single match based on its ruleset.
         /// </summary>
@@ -21,9 +22,9 @@ namespace CentaurScores.Services
         Task<MatchResultModel?> CalculateSingleMatchResult(int matchId);
 
         /// <summary>
-        /// Returns the ful list of supported rulesets.
+        /// Returns the list of supported rulesets, filtered to rulesets supported by the specified list.
         /// </summary>
         /// <returns></returns>
-        Task<List<RulesetModel>> GetRulesets();
+        Task<List<RulesetModel>> GetRulesets(int? listId);
     }
 }

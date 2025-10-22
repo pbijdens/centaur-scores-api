@@ -20,8 +20,8 @@ namespace CentaurScores.CompetitionLogic.CentaurLancasterFormat
                     Name = "Lancaster Voorronde",
                     RequiredArrowsPerEnd = 3,
                     RequiredEnds = 10,
-                    RequiredClasses = RulesetConstants.Classes,
-                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredClasses = RulesetConstants.DefaultClasses,
+                    RequiredSubclasses = RulesetConstants.DefaultDivisions,
                     RequiredTargets = RulesetConstants.TargetsLancaster,
                     RequiredScoreValues = RulesetConstants.KeyboardsLancaster
                 },
@@ -33,8 +33,8 @@ namespace CentaurScores.CompetitionLogic.CentaurLancasterFormat
                     Name = "Lancaster Finaleronde",
                     RequiredArrowsPerEnd = 3,
                     RequiredEnds = 5,
-                    RequiredClasses = RulesetConstants.Classes,
-                    RequiredSubclasses = RulesetConstants.CentaurSubclassesCompetities,
+                    RequiredClasses = RulesetConstants.DefaultClasses,
+                    RequiredSubclasses = RulesetConstants.DefaultDivisions,
                     RequiredTargets = RulesetConstants.TargetsLancasterFinale,
                     RequiredScoreValues = RulesetConstants.KeyboardsLancasterFinale
                 },

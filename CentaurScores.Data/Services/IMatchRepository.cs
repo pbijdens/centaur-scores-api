@@ -44,7 +44,7 @@ namespace CentaurScores.Services
         /// <param name="id"></param>
         /// <param name="participant"></param>
         /// <returns></returns>
-        Task<ParticipantModel> CreateParticipantForMatch(int id, ParticipantModel participant);
+        Task<ParticipantModelSimple> CreateParticipantForMatch(int id, ParticipantModelSimple participant);
         /// <summary>
         /// Delete a match.
         /// </summary>
@@ -98,21 +98,21 @@ namespace CentaurScores.Services
         /// <param name="id"></param>
         /// <param name="participantId"></param>
         /// <returns></returns>
-        Task<ParticipantModel> GetParticipantForMatch(int id, int participantId);
+        Task<ParticipantModelSimple> GetParticipantForMatch(int id, int participantId);
         /// <summary>
         /// Get all participants for a mcth.
         /// </summary>
         /// <param name="id"></param>
         /// <param name="round">Optional round, used for getting data for previous rounds of the current (h2h) match</param>
         /// <returns></returns>
-        Task<List<ParticipantModelV3>> GetParticipantsForMatch(int id, int? round = null);
+        Task<List<ParticipantModelFull>> GetParticipantsForMatch(int id, int? round = null);
         /// <summary>
         /// Gets a participant array for using it on a device, i.e. including one empty record for each unused lijn.
         /// </summary>
         /// <param name="id"></param>
         /// <param name="deviceID"></param>
         /// <returns></returns>
-        Task<List<ParticipantModel>> GetParticipantsForMatchByDeviceID(int id, string deviceID);
+        Task<List<ParticipantModelSimple>> GetParticipantsForMatchByDeviceID(int id, string deviceID);
         /// <summary>
         /// Transfer the participant from its current device to a new one./
         /// </summary>
@@ -136,7 +136,7 @@ namespace CentaurScores.Services
         /// <param name="participantId"></param>
         /// <param name="participant"></param>
         /// <returns></returns>
-        Task<ParticipantModel> UpdateParticipantForMatch(int id, int participantId, ParticipantModel participant);
+        Task<ParticipantModelSimple> UpdateParticipantForMatch(int id, int participantId, ParticipantModelSimple participant);
         /// <summary>
         /// Updates all participants and their scores for a device linked to a match.
         /// </summary>
@@ -144,14 +144,14 @@ namespace CentaurScores.Services
         /// <param name="deviceID"></param>
         /// <param name="match"></param>
         /// <returns></returns>
-        Task<int> UpdateParticipantsForMatch(int id, string deviceID, List<ParticipantModel> match);
+        Task<int> UpdateParticipantsForMatch(int id, string deviceID, List<ParticipantModelSimple> match);
         /// <summary>
         /// Update the h2h info for this participant.
         /// </summary>
         /// <param name="participant"></param>
         /// <param name="info"></param>
         /// <returns></returns>
-        Task UpdateParticipantHeadToHeadInfo(ParticipantModel participant, HeadToHeadInfoEntry[] info);
+        Task UpdateParticipantHeadToHeadInfo(ParticipantModelSimple participant, HeadToHeadInfoEntry[] info);
 
         /// <summary>
         /// Move the participant the specified number of places down in the list. Will swap positions with

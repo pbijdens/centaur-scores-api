@@ -12,7 +12,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         /// <summary>
         /// Model data for the participant.
         /// </summary>
-        public required ParticipantModel Participant;
+        public required ParticipantModelSimple Participant;
         /// <summary>
         /// Core data needed for the result later.
         /// </summary>
@@ -28,7 +28,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         /// <summary>
         /// Subclass or Subgroup
         /// </summary>
-        public required string AgeGroupCode;
+        public required string DivisionGroupCode;
         /// <summary>
         /// Sum of all arrows in all ends.
         /// </summary>

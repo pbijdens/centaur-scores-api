@@ -3,6 +3,7 @@ using System;
 using CentaurScores.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CentaurScores.Migrations
 {
     [DbContext(typeof(CentaurScoresDbContext))]
-    partial class CentaurScoresDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250928080139_InactiveCompetitions")]
+    partial class InactiveCompetitions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -259,9 +262,6 @@ namespace CentaurScores.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<string>("ConfigurationJSON")
-                        .HasColumnType("longtext");
-
                     b.Property<bool?>("IsInactive")
                         .HasColumnType("tinyint(1)");
 
@@ -279,9 +279,6 @@ namespace CentaurScores.Migrations
                     b.Property<int?>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    b.Property<string>("CompetitionFormatDisciplineDivisionMapJSON")
-                        .HasColumnType("longtext");
 
                     b.Property<string>("Group")
                         .IsRequired()

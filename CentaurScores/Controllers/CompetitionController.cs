@@ -22,9 +22,9 @@ namespace CentaurScores.Controllers
         [HttpGet("/list/{listId}/competitions")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<CompetitionModel>>> GetCompetitions(int? listId)
+        public async Task<ActionResult<List<CompetitionModel>>> GetCompetitions(int? listId, [FromQuery] bool inactive)
         {
-            return await competitionRepository.GetCompetitions(listId);
+            return await competitionRepository.GetCompetitions(listId, includeInactive: inactive);
         }
 
         /// <summary>

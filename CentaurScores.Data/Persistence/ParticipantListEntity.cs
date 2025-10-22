@@ -3,8 +3,13 @@
 namespace CentaurScores.Persistence
 {
     /// <summary>
-    /// DB participant list.
+    /// Database participant list entity. This is actually more a 'tenant' or 'organization' concept, as it
+    /// contains all participants that can be referenced from matches and personal best lists, as well as 
+    /// generic configuration for all competitions within the list.
     /// </summary>
+    /// <remarks>
+    /// This also serves as aggregate root for competitions and personal best lists.
+    /// </remarks>
     public class ParticipantListEntity
     {
         /// <summary>
@@ -38,6 +43,11 @@ namespace CentaurScores.Persistence
         /// </summary>
         public bool? IsInactive { get; set; } = null;
 
+        /// <summary>
+        /// This contains the configuration for this list. <see cref="ListConfigurationModel"/>"/>
+        /// </summary>
+        public string? ConfigurationJSON { get; set; }
+
         public ParticipantListModel ToModel()
         {
             ParticipantListModel result = new()
@@ -46,6 +56,7 @@ namespace CentaurScores.Persistence
                 Name = Name,
                 Entries = (Entries ?? []).Select(x => x.ToModel()).ToList(),
                 IsInactive = IsInactive ?? false,
+                Configuration = this.GetConfiguration()
             };
             return result;
         }
@@ -56,6 +67,7 @@ namespace CentaurScores.Persistence
             {
                 Id = Id,
                 Name = Name,
+                Configuration = this.GetConfiguration(),
             };
             return result;
         }
@@ -64,6 +76,7 @@ namespace CentaurScores.Persistence
         {
             Name = metadata.Name;
             IsInactive = metadata.IsInactive;
+            ConfigurationJSON = System.Text.Json.JsonSerializer.Serialize(metadata.Configuration ?? ListConfigurationModel.CentaurIndoorDefaults);
         }
     }
 }

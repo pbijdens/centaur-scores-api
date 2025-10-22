@@ -43,7 +43,7 @@ namespace CentaurScores.Persistence
                 Discipline = Discipline,
                 Score = Score,
                 Achieved = AchievedDate.ToString("yyyy-MM-dd"),
-                Notes = Notes
+                Notes = Notes,                
             };
             return model;
         }

@@ -92,7 +92,7 @@ namespace CentaurScores.Services
         }
 
         /// <inheritdoc/>
-        public async Task<List<CompetitionModel>> GetCompetitions(int? listId)
+        public async Task<List<CompetitionModel>> GetCompetitions(int? listId, bool includeInactive = false)
         {
             using var db = new CentaurScoresDbContext(configuration);
             db.Database.EnsureCreated();
@@ -100,6 +100,7 @@ namespace CentaurScores.Services
             var result = (await db.Competitions
                     .Include(x => x.ParticipantList)
                     .Where(x => listId != null && listId >= 0 && (x.ParticipantList != null && x.ParticipantList.Id == listId))
+                    .Where(x => includeInactive || x.IsInactive == null || x.IsInactive == false)
                     .OrderByDescending(x => x.StartDate)
                     .ThenBy(x => x.Name)
                     .ToListAsync())

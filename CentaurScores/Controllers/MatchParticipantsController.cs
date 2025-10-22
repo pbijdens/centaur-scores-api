@@ -21,7 +21,7 @@ namespace CentaurScores.Controllers
         [HttpGet()]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<ParticipantModelV3>>> GetParticipantsForMatch([FromRoute] int id)
+        public async Task<ActionResult<List<ParticipantModelFull>>> GetParticipantsForMatch([FromRoute] int id)
         {
             return await matchRepository.GetParticipantsForMatch(id);
         }
@@ -35,7 +35,7 @@ namespace CentaurScores.Controllers
         [HttpGet("{deviceID}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<ParticipantModel>>> GetParticipantsForMatchByDevice([FromRoute] int id, [FromRoute] string deviceID)
+        public async Task<ActionResult<List<ParticipantModelSimple>>> GetParticipantsForMatchByDevice([FromRoute] int id, [FromRoute] string deviceID)
         {
             return await matchRepository.GetParticipantsForMatchByDeviceID(id, deviceID);
         }
@@ -51,7 +51,7 @@ namespace CentaurScores.Controllers
         [HttpPut("{deviceID}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<int>> UpdateParticipantsForMatch([FromRoute] int id, [FromRoute] string deviceID, [FromBody] List<ParticipantModel> participants)
+        public async Task<ActionResult<int>> UpdateParticipantsForMatch([FromRoute] int id, [FromRoute] string deviceID, [FromBody] List<ParticipantModelSimple> participants)
         {
             return await matchRepository.UpdateParticipantsForMatch(id, deviceID, participants);
         }
@@ -82,7 +82,7 @@ namespace CentaurScores.Controllers
         [HttpGet("{participantId}/scoresheet")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<ParticipantModel>> GetParticipantForMatch([FromRoute] int id, [FromRoute] int participantId)
+        public async Task<ActionResult<ParticipantModelSimple>> GetParticipantForMatch([FromRoute] int id, [FromRoute] int participantId)
         {
             return await matchRepository.GetParticipantForMatch(id, participantId);
         }
@@ -98,7 +98,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize]
-        public async Task<ActionResult<ParticipantModel>> UpdateParticipantForMatch([FromRoute] int id, [FromRoute] int participantId, [FromBody] ParticipantModel participant)
+        public async Task<ActionResult<ParticipantModelSimple>> UpdateParticipantForMatch([FromRoute] int id, [FromRoute] int participantId, [FromBody] ParticipantModelSimple participant)
         {
             return await matchRepository.UpdateParticipantForMatch(id, participantId, participant);
         }
@@ -128,7 +128,7 @@ namespace CentaurScores.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize]
-        public async Task<ActionResult<ParticipantModel>> CreateParticipantForMatch([FromRoute] int id, [FromBody] ParticipantModel participant)
+        public async Task<ActionResult<ParticipantModelSimple>> CreateParticipantForMatch([FromRoute] int id, [FromBody] ParticipantModelSimple participant)
         {
             return await matchRepository.CreateParticipantForMatch(id, participant);
         }
