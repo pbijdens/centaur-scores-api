@@ -3,222 +3,228 @@ using CentaurScores.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 using System.Configuration;
 
-namespace CentaurScores.Services
+namespace CentaurScores.Services;
+
+/// <summary>
+/// Competition-related logic 
+/// </summary>
+/// <remarks>Constructor</remarks>
+public class ParticipantListService(IConfiguration configuration) : IParticipantListService
 {
-    /// <summary>
-    /// Competition-related logic 
-    /// </summary>
-    /// <remarks>Constructor</remarks>
-    public class ParticipantListService(IConfiguration configuration) : IParticipantListService
+    /// <inheritdoc/>
+    public async Task<ParticipantListModel?> CreateParticipantList(ParticipantListModel model)
     {
-        /// <inheritdoc/>
-        public async Task<ParticipantListModel?> CreateParticipantList(ParticipantListModel model)
+        using var db = new CentaurScoresDbContext(configuration);
+        ParticipantListEntity newEntity = new();
+        newEntity.UpdateFromModel(model);
+
+        db.Database.EnsureCreated();
+
+        EntityEntry<ParticipantListEntity> createdEntityEntry = await db.ParticipantLists.AddAsync(newEntity);
+        await db.SaveChangesAsync();
+        int createdObjectId = createdEntityEntry.Entity?.Id ?? -1;
+        return await GetParticipantList(createdObjectId);
+    }
+
+    /// <inheritdoc/>
+    public async Task<ParticipantListMemberModel?> CreateParticipantListMember(int listId, ParticipantListMemberModel model)
+    {
+        int createdObjectId = -1;
+
+        //ParticipantListEntity participantListEntity 
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
+
+        ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId) ?? throw new ArgumentException($"The participant list with that ID does not exist.", nameof(listId));
+        ParticipantListEntryEntity participantListEntryEntity = new()
         {
-            using var db = new CentaurScoresDbContext(configuration);
-            ParticipantListEntity newEntity = new();
-            newEntity.UpdateFromModel(model);
+            List = participantListEntity,
+        };
+        participantListEntryEntity.UpdateFromModel(model);
 
-            db.Database.EnsureCreated();
+        EntityEntry<ParticipantListEntryEntity> result = await db.ParticipantListEntries.AddAsync(participantListEntryEntity);
+        await db.SaveChangesAsync();
+        createdObjectId = result.Entity?.Id ?? -1;
+        return await GetParticipantListMember(listId, createdObjectId);
+    }
 
-            EntityEntry<ParticipantListEntity> createdEntityEntry = await db.ParticipantLists.AddAsync(newEntity);
-            await db.SaveChangesAsync();
-            int createdObjectId = createdEntityEntry.Entity?.Id ?? -1;
-            return await GetParticipantList(createdObjectId);
-        }
+    /// <inheritdoc/>
+    public async Task<int> DeactivateParticipantListMember(int listId, int memberId)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        ParticipantListEntryEntity foundEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId) ?? throw new ArgumentException("That participant ID does not exist", nameof(memberId));
+        foundEntity.IsDeactivated = true;
+        await db.SaveChangesAsync();
+        return 1;
+    }
 
-        /// <inheritdoc/>
-        public async Task<ParticipantListMemberModel?> CreateParticipantListMember(int listId, ParticipantListMemberModel model)
+    /// <inheritdoc/>
+    public async Task<int> DeleteParticipantList(int listId)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
+
+        ParticipantListEntity? foundEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
+        if (null != foundEntity)
         {
-            int createdObjectId = -1;
-
-            //ParticipantListEntity participantListEntity 
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
-
-            ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId) ?? throw new ArgumentException($"The participant list with that ID does not exist.", nameof(listId));
-            ParticipantListEntryEntity participantListEntryEntity = new()
-            {
-                List = participantListEntity,
-            };
-            participantListEntryEntity.UpdateFromModel(model);
-
-            EntityEntry<ParticipantListEntryEntity> result = await db.ParticipantListEntries.AddAsync(participantListEntryEntity);
-            await db.SaveChangesAsync();
-            createdObjectId = result.Entity?.Id ?? -1;
-            return await GetParticipantListMember(listId, createdObjectId);
-        }
-
-        /// <inheritdoc/>
-        public async Task<int> DeactivateParticipantListMember(int listId, int memberId)
-        {
-            using var db = new CentaurScoresDbContext(configuration);
-            ParticipantListEntryEntity foundEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId) ?? throw new ArgumentException("That participant ID does not exist", nameof(memberId));
-            foundEntity.IsDeactivated = true;
+            db.ParticipantLists.Remove(foundEntity);
             await db.SaveChangesAsync();
             return 1;
         }
+        return 0;
+    }
 
-        /// <inheritdoc/>
-        public async Task<int> DeleteParticipantList(int listId)
+    /// <inheritdoc/>
+    public async Task<int> DeleteParticipantListMember(int listId, int memberId)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
+
+        ParticipantListEntryEntity? foundEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId);
+        if (null != foundEntity)
         {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
-
-            ParticipantListEntity? foundEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
-            if (null != foundEntity)
-            {
-                db.ParticipantLists.Remove(foundEntity);
-                await db.SaveChangesAsync();
-                return 1;
-            }
-            return 0;
+            db.ParticipantListEntries.Remove(foundEntity);
+            await db.SaveChangesAsync();
+            return 1;
         }
+        return 0;
+    }
 
-        /// <inheritdoc/>
-        public async Task<int> DeleteParticipantListMember(int listId, int memberId)
+    /// <inheritdoc/>
+    public async Task<ParticipantListModel?> GetParticipantList(int listId)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
+
+        ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
+        if (null != participantListEntity)
         {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
-
-            ParticipantListEntryEntity? foundEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId);
-            if (null != foundEntity)
-            {
-                db.ParticipantListEntries.Remove(foundEntity);
-                await db.SaveChangesAsync();
-                return 1;
-            }
-            return 0;
+            return participantListEntity.ToModel();
         }
+        return null;
+    }
 
-        /// <inheritdoc/>
-        public async Task<ParticipantListModel?> GetParticipantList(int listId)
+    /// <inheritdoc/>
+    public async Task<ParticipantListMemberModel?> GetParticipantListMember(int listId, int memberId)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
+
+        ParticipantListEntryEntity? participantListEntryEntity = await db.ParticipantListEntries
+            .Include(x => x.PersonalBests)
+                .ThenInclude(x => x.List)
+            .FirstOrDefaultAsync(x => x.Id == memberId && x.List.Id == listId);
+        if (null != participantListEntryEntity)
         {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
-
-            ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
-            if (null != participantListEntity)
-            {
-                return participantListEntity.ToModel();
-            }
-            return null;
+            var result = participantListEntryEntity.ToModel();
+            await SyncResponseWithConfiguredCompetitionFormatDisciplines(db, listId, result);
+            return result;
         }
+        return null;
+    }
 
-        /// <inheritdoc/>
-        public async Task<ParticipantListMemberModel?> GetParticipantListMember(int listId, int memberId)
+    private async Task SyncResponseWithConfiguredCompetitionFormatDisciplines(CentaurScoresDbContext db, int listId, ParticipantListMemberModel result)
+    {
+        ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
+        if (null == participantListEntity) return;
+
+        if (result.CompetitionFormatDisciplineDivisionMap == null) result.CompetitionFormatDisciplineDivisionMap = [];
+        ListConfigurationModel? configuration = participantListEntity.ToModel().Configuration;
+        if (null == configuration) return;
+
+        List<CompetitionEntity> competitions = await db.Competitions
+            .AsNoTracking()
+            .Where(c => c.ParticipantList != null && c.ParticipantList.Id == listId)
+            .ToListAsync();
+
+        // Ensure that all (CompetitionFormat,Discipline) pairs are present in the mapping, even if DivisionCode is null.
+        foreach (DisciplineModel discipline in configuration.Disciplines)
         {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
-
-            ParticipantListEntryEntity? participantListEntryEntity = await db.ParticipantListEntries
-                .Include(x => x.PersonalBests)
-                    .ThenInclude(x => x.List)
-                .FirstOrDefaultAsync(x => x.Id == memberId && x.List.Id == listId);
-            if (null != participantListEntryEntity)
+            foreach (CompetitionEntity competition in competitions)
             {
-                var result = participantListEntryEntity.ToModel();
-                await SyncResponseWithConfiguredCompetitionFormatDisciplines(db, listId, result);
-                return result;
-            }
-            return null;
-        }
-
-        private async Task SyncResponseWithConfiguredCompetitionFormatDisciplines(CentaurScoresDbContext db, int listId, ParticipantListMemberModel result)
-        {
-            ParticipantListEntity? participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId);
-            if (null == participantListEntity) return;
-
-            if (result.CompetitionFormatDisciplineDivisionMap == null) result.CompetitionFormatDisciplineDivisionMap = [];
-            ListConfigurationModel? configuration = participantListEntity.ToModel().Configuration;
-            if (null == configuration) return;
-
-            // Ensure that all (CompetitionFormat,Discipline) pairs are present in the mapping, even if DivisionCode is null.
-            foreach (var discipline in configuration.Disciplines)
-            {
-                foreach (var competitionFormat in configuration.CompetitionFormats)
+                bool found = false;
+                foreach (var existingMapping in result.CompetitionFormatDisciplineDivisionMap)
                 {
-                    bool found = false;
-                    foreach (var existingMapping in result.CompetitionFormatDisciplineDivisionMap)
+                    if (existingMapping.CompetitionID == competition.Id && existingMapping.DisciplineCode == discipline.Code)
                     {
-                        if (existingMapping.CompetitionFormat == competitionFormat && existingMapping.DisciplineCode == discipline.Code)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found)
-                    {
-                        result.CompetitionFormatDisciplineDivisionMap.Add(new CompetitionFormatDisciplineDivisionMapModel
-                        {
-                            CompetitionFormat = competitionFormat,
-                            DisciplineCode = discipline.Code,
-                            DivisionCode = null,
-                        });
+                        found = true;
+                        break;
                     }
                 }
+                if (!found)
+                {
+                    result.CompetitionFormatDisciplineDivisionMap.Add(new CompetitionFormatDisciplineDivisionMapModel
+                    {
+                        CompetitionID = competition?.Id ?? -1,
+                        DisciplineCode = discipline.Code,
+                        DivisionCode = null,
+                    });
+                }
             }
-            HashSet<string> pbDisciplineCodesAndCFSet = result.PersonalBests.Select(pb => 
-                    $"{configuration.Disciplines.FirstOrDefault(x => x.Label== pb.Discipline)?.Code ?? ""}:" +
-                    $":{pb.CompetitionFormat}"
-                    ).ToHashSet();
-
-            // Remove any mappings that are no longer valid according to the current configuration.
-            result.CompetitionFormatDisciplineDivisionMap = result.CompetitionFormatDisciplineDivisionMap
-                .Where(x => configuration.CompetitionFormats.Contains(x.CompetitionFormat) && configuration.Disciplines.Any(d => d.Code == x.DisciplineCode))
-                .OrderBy(x => pbDisciplineCodesAndCFSet.Any(pb => pb == $"{x.DisciplineCode}::{x.CompetitionFormat}") ? "0" : "1")
-                .ThenBy(x => x.CompetitionFormat)
-                .ThenBy(x => x.DisciplineCode)
-                .ToList();
         }
+        HashSet<string> pbDisciplineCodesAndCFSet = result.PersonalBests.Select(pb =>
+                $"{configuration.Disciplines.FirstOrDefault(x => x.Label == pb.Discipline)?.Code ?? ""}:" +
+                $":{pb.CompetitionFormat}"
+                ).ToHashSet();
 
-        /// <inheritdoc/>
-        public async Task<List<ParticipantListMemberModel>> GetParticipantListMembers(int listId)
-        {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
+        // Remove any mappings that are no longer valid according to the current configuration.
+        result.CompetitionFormatDisciplineDivisionMap = result.CompetitionFormatDisciplineDivisionMap
+            .Where(x => competitions.Any(c => c.Id == x.CompetitionID) && configuration.Disciplines.Any(d => d.Code == x.DisciplineCode))
+            .Where(x => competitions.Any(c => c.Id == x.CompetitionID && c.IsInactive != true) || !string.IsNullOrEmpty(x.DivisionCode))
+            .OrderBy(x => competitions.Any(c => c.Id == x.CompetitionID && c.IsInactive != false) ? "0" : "1")
+            .ThenBy(x => x.CompetitionID)
+            .ThenBy(x => x.DisciplineCode)
+            .ToList();
+    }
 
-            ParticipantListEntity participantListEntity = await db.ParticipantLists.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == listId) ?? throw new ArgumentException($"A list with that ID does not exist", nameof(listId));
-            return participantListEntity.Entries.OrderBy(x => x.Name).Where(x => !x.IsDeactivated).ToList().Select(x => x.ToModel()).ToList();
-        }
+    /// <inheritdoc/>
+    public async Task<List<ParticipantListMemberModel>> GetParticipantListMembers(int listId)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
 
-        /// <inheritdoc/>
-        public async Task<List<ParticipantListModel>> GetParticipantLists(bool includeInactiveLists = false)
-        {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
-            return await Task.FromResult(db.ParticipantLists
-                .Where(x => x.IsInactive == null || x.IsInactive == false || includeInactiveLists)
-                .OrderBy(x => x.Name)                
-                .ToList()
-                .Select(x => x.ToModel())
-                .ToList());
-        }
+        ParticipantListEntity participantListEntity = await db.ParticipantLists.Include(x => x.Entries).FirstOrDefaultAsync(x => x.Id == listId) ?? throw new ArgumentException($"A list with that ID does not exist", nameof(listId));
+        return participantListEntity.Entries.OrderBy(x => x.Name).Where(x => !x.IsDeactivated).ToList().Select(x => x.ToModel()).ToList();
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<ParticipantListModel>> GetParticipantLists(bool includeInactiveLists = false)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
+        return await Task.FromResult(db.ParticipantLists
+            .Where(x => x.IsInactive == null || x.IsInactive == false || includeInactiveLists)
+            .OrderBy(x => x.Name)
+            .ToList()
+            .Select(x => x.ToModel())
+            .ToList());
+    }
 
 
-        /// <inheritdoc/>
-        public async Task<ParticipantListModel?> UpdateParticipantList(int listId, ParticipantListModel model)
-        {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
+    /// <inheritdoc/>
+    public async Task<ParticipantListModel?> UpdateParticipantList(int listId, ParticipantListModel model)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
 
-            ParticipantListEntity participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId) ?? throw new ArgumentException($"A list with that ID does not exist", nameof(listId));
-            participantListEntity.UpdateFromModel(model);
-            await db.SaveChangesAsync();
-            return await GetParticipantList(listId);
-        }
+        ParticipantListEntity participantListEntity = await db.ParticipantLists.FirstOrDefaultAsync(x => x.Id == listId) ?? throw new ArgumentException($"A list with that ID does not exist", nameof(listId));
+        participantListEntity.UpdateFromModel(model);
+        await db.SaveChangesAsync();
+        return await GetParticipantList(listId);
+    }
 
-        /// <inheritdoc/>
-        public async Task<ParticipantListMemberModel?> UpdateParticipantListMember(int listId, int memberId, ParticipantListMemberModel model)
-        {
-            using var db = new CentaurScoresDbContext(configuration);
-            db.Database.EnsureCreated();
+    /// <inheritdoc/>
+    public async Task<ParticipantListMemberModel?> UpdateParticipantListMember(int listId, int memberId, ParticipantListMemberModel model)
+    {
+        using var db = new CentaurScoresDbContext(configuration);
+        db.Database.EnsureCreated();
 
-            ParticipantListEntryEntity participantListEntryEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId) ?? throw new ArgumentException($"A member with that ID does not exist in that list, or the list does not exist", nameof(memberId));
-            participantListEntryEntity.UpdateFromModel(model);
-            await db.SaveChangesAsync();
-            return await GetParticipantListMember(listId, memberId);
-        }
+        ParticipantListEntryEntity participantListEntryEntity = await db.ParticipantListEntries.FirstOrDefaultAsync(x => x.List.Id == listId && x.Id == memberId) ?? throw new ArgumentException($"A member with that ID does not exist in that list, or the list does not exist", nameof(memberId));
+        participantListEntryEntity.UpdateFromModel(model);
+        await db.SaveChangesAsync();
+        return await GetParticipantListMember(listId, memberId);
     }
 }

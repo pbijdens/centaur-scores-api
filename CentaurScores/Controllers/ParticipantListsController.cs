@@ -11,7 +11,8 @@ namespace CentaurScores.Controllers
     /// <remarks>Constructor</remarks>
     [ApiController]
     [Route("/participantlists")]
-    public class ParticipantListsController(IParticipantListService participantListsRepository)
+    public class ParticipantListsController(IParticipantListService participantListsRepository,
+        IParticipantReportService participantReportService)
     {
         /// <summary>
         /// Returns all participant lists for this organization.
@@ -151,6 +152,16 @@ namespace CentaurScores.Controllers
         public async Task<ActionResult<ParticipantListMemberModel?>> CreateParticipantListMember([FromRoute] int listId, [FromBody] ParticipantListMemberModel model)
         {
             return await participantListsRepository.CreateParticipantListMember(listId, model);
+        }
+
+        [HttpGet("{listId}/report")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize]
+
+        public async Task<ActionResult<List<ParticipantReport>>> GetParticipantReportPerDiscipline([FromRoute] int listId)
+        {
+            return await participantReportService.GetParticipantReportPerDiscipline(listId);
         }
     }
 }

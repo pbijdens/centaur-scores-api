@@ -36,7 +36,7 @@ namespace CentaurScores.Model
 
     public class CompetitionFormatDisciplineDivisionMapModel
     {
-        public string CompetitionFormat { get; set; } = string.Empty;
+        public int CompetitionID { get; set; }
         public string DisciplineCode { get; set; } = string.Empty;
         public string? DivisionCode { get; set; } = string.Empty;
     }

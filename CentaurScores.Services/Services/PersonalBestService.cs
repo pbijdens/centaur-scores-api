@@ -55,7 +55,9 @@ namespace CentaurScores.Services
                         DisciplineCode = matchParticipant.Group,
                         participantListEntry.Name,
                     };
+            //config.Disciplines.FirstOrDefault(r => r.Code == x.DisciplineCode)?.Label ?? "")
 
+            Dictionary<string, string> disciplineByCode = new(config.Disciplines.Select(x => new KeyValuePair<string, string>(x.Code, x.Label)));
 
             // This is difficult to read, but the easy to read version had terrible performance
             var updatedPersonalBestRecords =
@@ -83,6 +85,7 @@ namespace CentaurScores.Services
                  .Where(x => x.Score > x.PersonalBestScore)
                  .ToList()
                  .Where(x => (x.PersonalBestListEntry.List?.CompetitionFormat ?? "") == rulesetToCf[x.RulesetCode ?? ""])
+                 .Where(x => x.PersonalBestDiscipline == disciplineByCode[x.DisciplineCode])
                  .Select(x => new NewPersonalBestModel
                  {
                      Id = x.PersonalBestListEntry?.Id ?? -1,

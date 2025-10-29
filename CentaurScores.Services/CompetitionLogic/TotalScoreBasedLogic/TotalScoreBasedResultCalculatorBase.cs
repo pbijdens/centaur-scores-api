@@ -31,7 +31,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         // Point scores for F1 scoring
         private static readonly int[] F1ScoreArray = [12, 10, 8, 7, 6, 5, 4, 3, 2, 1];
 
-        public static readonly GroupInfo KlasseOnbekend = new GroupInfo { Code = "#?#", Label = "Klasse onbekend" };
+        public static readonly GroupInfo KlasseOnbekend = new GroupInfo { Code = "Z#Z", Label = "Klasse onbekend" };
 
         /// <summary>
         /// By default only the best 4 scores (per Ruleset Code) are used to calculate the total competito result.
@@ -39,7 +39,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         protected int RemoveLowestScoresPerMatchTypeIfMoreThanThisManyMatchesAreAvailableForAParticipant = 5; // TODO: LOAD FROM MATCH CONFIGURATION IN DB ENTYRY
 
         /// <summary>
-        /// Request suppoerted rulesets to be returned.
+        /// Request supported rulesets to be returned.
         /// </summary>
         /// <returns></returns>
         public abstract Task<List<RulesetModel>> GetSupportedRulesets();
@@ -48,7 +48,8 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         public virtual async Task<CompetitionResultModel> CalculateCompetitionResult(int competitionId)
         {
             using CentaurScoresDbContext db = new(configuration);
-            var result = await CalculateCompetitionResultForDB(db, competitionId);
+            TsbCalculationContext context = new(db, await GetSupportedRulesets());
+            var result = await CalculateCompetitionResultForDB(context, competitionId);
             return result;
         }
 
@@ -56,22 +57,21 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         public virtual async Task<MatchResultModel> CalculateSingleMatchResult(int matchId)
         {
             using CentaurScoresDbContext db = new(configuration);
-            var result = await CalculateSingleMatchResultForDB(db, matchId, isCompetition: false);
+            TsbCalculationContext context = new(db, await GetSupportedRulesets());
+            var result = await CalculateSingleMatchResultForDB(context, matchId, isCompetition: false);
             return result;
         }
 
         /// <inheritdoc/>
         public async Task<bool> SupportsMatch(MatchEntity matchEntity)
         {
-            List<RulesetModel> supportedRulesets = await GetSupportedRulesets();
-            return supportedRulesets.Any(x => x.Code == matchEntity.RulesetCode && (matchEntity.MatchFlags & MatchEntity.MatchFlagsHeadToHead) == 0); // does not support any final rounds
+            return (await GetSupportedRulesets()).Any(x => x.Code == matchEntity.RulesetCode && (matchEntity.MatchFlags & MatchEntity.MatchFlagsHeadToHead) == 0); // does not support any final rounds
         }
 
         /// <inheritdoc/>
         public async Task<bool> SupportsCompetition(CompetitionEntity competitionEntity)
         {
-            List<RulesetModel> supportedRulesets = await GetSupportedRulesets();
-            return (supportedRulesets.Any(x => competitionEntity.RulesetGroupName != null && x.GroupName == competitionEntity.RulesetGroupName));
+            return (await GetSupportedRulesets()).Any(x => competitionEntity.RulesetGroupName != null && x.GroupName == competitionEntity.RulesetGroupName);
         }
 
         /// <summary>
@@ -82,12 +82,12 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         /// Next, the sub-totals are added up, yielding a score for the full competition for each participant. These
         /// scores are grouped as requested and returned as a competition result.
         /// </summary>
-        protected virtual async Task<CompetitionResultModel> CalculateCompetitionResultForDB(CentaurScoresDbContext db, int competitionId)
+        protected virtual async Task<CompetitionResultModel> CalculateCompetitionResultForDB(TsbCalculationContext context, int competitionId)
         {
             TsbCompetitionCalculationState state = new()
             {
-                DB = db,
-                CompetitionEntity = await db.Competitions
+                DB = context.Database,
+                CompetitionEntity = await context.Database.Competitions
                                                 .AsNoTracking()
                                                 .Include(c => c.Matches)
                                                 .ThenInclude(m => m.Participants)
@@ -102,7 +102,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
 
             // Calculate the "single match result" for each of the matches, then group them by ruleset code
             // sets both score and f1 style points in wrappers
-            await PopulateStateSingleMatchResults(db, state);
+            await PopulateStateSingleMatchResults(context, state);
 
             // Next, build a list of participants, grouping them by name
             List<ParticipantData> allParticipants = [.. state.MatchResultsByRuleset.SelectMany(mrl => mrl.Value.SelectMany(mr => mr.Ungrouped.Select(p => p.ParticipantData))).Distinct().OrderBy(p => p.Normalizedname)];
@@ -160,7 +160,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                 result.ByClass[groupInfo] = await SortWrappersUsingCompetitionRules(state, wrappersForThisGroup);
 
                 result.BySubclass[groupInfo] = [];
-                IEnumerable<string> subgroupsWithResults = wrappers.Where(x => x.ParticipantData.Group == groupInfo).Select(x => x.ParticipantData.Subgroup).Distinct();
+                IEnumerable<string> subgroupsWithResults = wrappers.Where(x => x.ParticipantData.Group == groupInfo).Select(x => x.ParticipantData.Subgroup).Distinct().OrderBy(x => x);
                 foreach (string subgroupInfo in subgroupsWithResults)
                 {
                     // Add results for this group and subgroup and sort them
@@ -177,9 +177,9 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         /// starting at the highest possible score and working our way down. If after this the tie remains, both archers will be on the exact
         /// same spot.
         /// </summary>
-        protected virtual async Task<MatchResultModel> CalculateSingleMatchResultForDB(CentaurScoresDbContext db, int id, bool isCompetition)
+        protected async Task<MatchResultModel> CalculateSingleMatchResultForDB(TsbCalculationContext context, int id, bool isCompetition)
         {
-            MatchEntity? match = await db.GetMatchEntitiesUntracked().Include(x => x.Participants).FirstOrDefaultAsync(x => x.Id == id);
+            MatchEntity? match = await context.Database.GetMatchEntitiesUntracked().Include(x => x.Participants).Include(m => m.Competition).FirstOrDefaultAsync(x => x.Id == id);
             if (null == match)
             {
                 throw new ArgumentException("Not a valid match", nameof(id));
@@ -187,12 +187,12 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             MatchModel matchModel = match.ToModel(); // convert to a model so we can use a utility function to 
 
             // Populate the list of match participants and add the data that's needed to calculate a result.
-            List<TsbParticipantWrapperSingleMatch> participants = await PopulateMatchParticipantsList(db, match, matchModel);
+            List<TsbParticipantWrapperSingleMatch> participants = await PopulateMatchParticipantsList(context, match, matchModel);
 
             ParticipantListMetadataModel? listConfig = match.Competition?.ParticipantList?.ToMetadataModel();
 
             // To the base scores, add data for calculating improvements of the personal best score
-            await PopulateAveragesForPersonalBest(db, matchModel, match, participants);
+            await PopulateAveragesForPersonalBest(context, matchModel, match, participants);
 
             List<GroupInfo> allClasses = CalculateAllDisciplines(matchModel, listConfig);
             List<DivisionModel> allSubclasses = CalculateAllDivisions(listConfig);
@@ -214,21 +214,21 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                 Ruleset = match.RulesetCode ?? string.Empty,
                 Groups = allClasses,
                 Subgroups = allSubclasses.Select(x => new GroupInfo { Label = x.Label, Code = x.Code }).ToList(),
-                Ungrouped = await SortSingleMatchResult(db, allArrowValues, participants, match)
+                Ungrouped = await SortSingleMatchResult(context, allArrowValues, participants, match)
             };
             foreach (GroupInfo disciplineGroupInfo in disciplineGroupInfos)
             {
                 var l1participants = participants.Where(x => x.DisciplineCode == disciplineGroupInfo.Code).ToList();
                 if (l1participants.Count != 0)
                 {
-                    result.ByClass[disciplineGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l1participants, match);
+                    result.ByClass[disciplineGroupInfo.Code] = await SortSingleMatchResult(context, allArrowValues, l1participants, match);
                     result.BySubclass[disciplineGroupInfo.Code] = [];
                     foreach (GroupInfo divisionGroupInfo in divisionGroupInfos)
                     {
                         var l2participants = participants.Where(x => x.DisciplineCode == disciplineGroupInfo.Code && x.DivisionGroupCode == divisionGroupInfo.Code).ToList();
                         if (l2participants.Count != 0)
                         {
-                            result.BySubclass[disciplineGroupInfo.Code][divisionGroupInfo.Code] = await SortSingleMatchResult(db, allArrowValues, l2participants, match);
+                            result.BySubclass[disciplineGroupInfo.Code][divisionGroupInfo.Code] = await SortSingleMatchResult(context, allArrowValues, l2participants, match);
                         }
                     }
                 }
@@ -270,15 +270,15 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             return allClasses;
         }
 
-        private async Task PopulateAveragesForPersonalBest(CentaurScoresDbContext db, MatchModel matchModel, MatchEntity match, List<TsbParticipantWrapperSingleMatch> participants)
+        private async Task PopulateAveragesForPersonalBest(TsbCalculationContext context, MatchModel matchModel, MatchEntity match, List<TsbParticipantWrapperSingleMatch> participants)
         {
-            RulesetModel ruleset = (await GetSupportedRulesets()).First(rs => rs.Code == match.RulesetCode);
+            RulesetModel ruleset = context.SupportedRulesets.First(rs => rs.Code == match.RulesetCode);
             string matchCompetitionFormat = ruleset.CompetitionFormat;
 
             IEnumerable<GroupInfo> groups = matchModel.Groups;
 
             Dictionary<(int, string), int> personalBest = new();
-            List<PersonalBestsListEntryEntity> personalBestEntities = db.PersonalBestListEntries.Include(e => e.Participant).AsNoTracking().Where(e => e.List.CompetitionFormat == matchCompetitionFormat).ToList();
+            List<PersonalBestsListEntryEntity> personalBestEntities = context.Database.PersonalBestListEntries.AsNoTracking().Include(e => e.Participant).AsNoTracking().Where(e => e.List.CompetitionFormat == matchCompetitionFormat).ToList();
             foreach (PersonalBestsListEntryEntity? pbe in personalBestEntities)
             {
                 if (pbe.Participant != null && pbe.Participant.Id != null)
@@ -312,7 +312,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
         /// <param name="participants"></param>
         /// <param name="match"></param>
         /// <returns></returns>
-        protected virtual async Task<List<MatchScoreForParticipant>> SortSingleMatchResult(CentaurScoresDbContext db, List<int> allArrowValues, List<TsbParticipantWrapperSingleMatch> participants, MatchEntity? match)
+        protected virtual async Task<List<MatchScoreForParticipant>> SortSingleMatchResult(TsbCalculationContext context, List<int> allArrowValues, List<TsbParticipantWrapperSingleMatch> participants, MatchEntity? match)
         {
             TmatchComparer tiebreakingComparer = new();
             List<MatchScoreForParticipant> result = [];
@@ -431,7 +431,7 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             }
         }
 
-        private async Task<List<TsbParticipantWrapperSingleMatch>> PopulateMatchParticipantsList(CentaurScoresDbContext db, MatchEntity? match, MatchModel matchModel)
+        private async Task<List<TsbParticipantWrapperSingleMatch>> PopulateMatchParticipantsList(TsbCalculationContext context, MatchEntity? match, MatchModel matchModel)
         {
             List<TsbParticipantWrapperSingleMatch> participants = [];
 
@@ -440,18 +440,15 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
                 // Adds the (fixed) participant models to the participants array
                 participants.AddRange(match.Participants.Select(x =>
                 {
-                    GroupInfo divisionGroupInfo = LookupAgeGroupForParticipant(db, match, matchModel, participant: x);
-                    // register the participant in the "new" subgroup
-                    x.Subgroup = divisionGroupInfo.Code;
-
                     TsbParticipantWrapperSingleMatch pp = new()
                     {
                         Participant = x.ToSimpleModel(activeRound: 0),
                         ParticipantData = x.ToSimpleModel(activeRound: 0).ToData(),
                         Ends = [],
                         DisciplineCode = x.Group,
-                        DivisionGroupCode = divisionGroupInfo.Code,
+                        DivisionGroupCode = string.Empty, // set in fix
                     };
+                    OverwriteParticipantInfoFromListData(context, match, x, pp);
                     MatchRepository.AutoFixParticipantModel(matchModel, pp.Participant); // ensures scorecards match the match configuration
                     pp.Ends = pp.Participant.Ends;
                     return pp;
@@ -460,40 +457,42 @@ namespace CentaurScores.CompetitionLogic.TotalScoreBasedLogic
             return await Task.FromResult(participants);
         }
 
-        private GroupInfo LookupAgeGroupForParticipant(CentaurScoresDbContext db, MatchEntity match, MatchModel matchModel, ParticipantEntity participant)
+        private static void OverwriteParticipantInfoFromListData(TsbCalculationContext context, MatchEntity match, ParticipantEntity x, TsbParticipantWrapperSingleMatch pp)
         {
-            if (participant.ParticipantListEntryId != null)
+            ParticipantListEntryEntity e = context.GetParticipantEntityFor(x.ParticipantListEntryId ?? -1);
+            if (null != e)
             {
-                ParticipantListEntryEntity? participantListEntry = db.ParticipantListEntries.AsNoTracking().FirstOrDefault(e => e.Id == participant.ParticipantListEntryId);
-                if (null != participantListEntry)
+                pp.Participant.Name = e.Name;
+                pp.ParticipantData.Name = e.Name;
+            }
+
+            List<CompetitionFormatDisciplineDivisionMapModel> divisionMappings = context.GetCompetitionFormatDisciplineDivisionMapModel(x.ParticipantListEntryId ?? -1);
+            if (null != divisionMappings)
+            {
+                CompetitionFormatDisciplineDivisionMapModel? mapping = divisionMappings
+                        .FirstOrDefault(m => m.CompetitionID == match.Competition?.Id && m.DisciplineCode == pp.Participant.Group);
+                if (null != mapping && mapping.DivisionCode != null)
                 {
-                    List<CompetitionFormatDisciplineDivisionMapModel> divisionMappings = System.Text.Json.JsonSerializer.Deserialize<List<CompetitionFormatDisciplineDivisionMapModel>?>(participantListEntry.CompetitionFormatDisciplineDivisionMapJSON ?? "null") ?? [];
-
-                    Task<List<RulesetModel>> supportedRulesetsTask = GetSupportedRulesets();
-                    supportedRulesetsTask.Wait();
-                    RulesetModel? ruleset = supportedRulesetsTask.Result.FirstOrDefault(rs => rs.Code == match.RulesetCode);
-
-                    if (divisionMappings != null && divisionMappings.Count > 0)
-                    {
-                        CompetitionFormatDisciplineDivisionMapModel? mapping = divisionMappings
-                            .FirstOrDefault(m => m.CompetitionFormat == ruleset?.CompetitionFormat && m.DisciplineCode == participant.Group);
-                        if (null != mapping && mapping.DivisionCode != null)
-                        {
-                            return new GroupInfo { Code = mapping.DivisionCode, Label = string.Empty };
-                        }
-                    }
+                    pp.Participant.Subgroup = mapping.DivisionCode;
+                    pp.ParticipantData.Subgroup = mapping.DivisionCode;
+                    pp.DivisionGroupCode = mapping.DivisionCode;
+                }
+                else
+                {
+                    pp.Participant.Subgroup = KlasseOnbekend.Code;
+                    pp.ParticipantData.Subgroup = KlasseOnbekend.Code;
+                    pp.DivisionGroupCode = KlasseOnbekend.Code;
                 }
             }
-            return KlasseOnbekend;
         }
 
-        private async Task PopulateStateSingleMatchResults(CentaurScoresDbContext db, TsbCompetitionCalculationState state)
+        private async Task PopulateStateSingleMatchResults(TsbCalculationContext context, TsbCompetitionCalculationState state)
         {
             foreach (MatchEntity matchEntity in state.CompetitionEntity.Matches)
             {
                 if (null != matchEntity.Id)
                 {
-                    MatchResultModel matchResult = await CalculateSingleMatchResultForDB(db, matchEntity.Id.Value, isCompetition: true);
+                    MatchResultModel matchResult = await CalculateSingleMatchResultForDB(context, matchEntity.Id.Value, isCompetition: true);
                     if (!state.MatchResultsByRuleset.ContainsKey(matchEntity.RulesetCode ?? string.Empty)) state.MatchResultsByRuleset[matchEntity.RulesetCode ?? string.Empty] = [];
                     state.MatchResultsByRuleset[matchEntity.RulesetCode ?? string.Empty].Add(matchResult);
                 }
